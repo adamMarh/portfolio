@@ -4,7 +4,7 @@ import { createTextureService } from './textureService.js';
 function createGradMap(steps = 4) {
   const d = new Uint8Array(steps);
   for (let i = 0; i < steps; i++) d[i] = Math.round((i / (steps - 1)) * 255);
-  const t = new THREE.DataTexture(d, steps, 1, THREE.LuminanceFormat);
+  const t = new THREE.DataTexture(d, steps, 1, THREE.RedFormat);
   t.minFilter = t.magFilter = THREE.NearestFilter;
   t.generateMipmaps = false;
   t.needsUpdate = true;
@@ -15,15 +15,16 @@ export function createSolarScene({ canvas, projects }) {
   const W = () => window.innerWidth;
   const H = () => window.innerHeight;
 
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
   renderer.setSize(W(), H());
-  renderer.outputEncoding = THREE.sRGBEncoding;
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.toneMapping = THREE.NoToneMapping;
 
   const textureService = createTextureService(renderer);
 
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x02050f);
+  scene.background = new THREE.Color(0x0a0f1d);
 
   const camera = new THREE.PerspectiveCamera(55, W() / H(), 0.1, 1000);
   camera.position.set(-4, 24, 82);
@@ -36,16 +37,16 @@ export function createSolarScene({ canvas, projects }) {
 
   const gradMap = createGradMap(4);
 
-  scene.add(new THREE.AmbientLight(0x11224a, 2.2));
+  scene.add(new THREE.AmbientLight(0x7799dd, 12.0));
 
-  const sunLight = new THREE.PointLight(0xfff8e0, 3.8, 360);
+  const sunLight = new THREE.PointLight(0xffffff, 15.0, 600);
   scene.add(sunLight);
 
-  const fillA = new THREE.DirectionalLight(0x4466aa, 0.4);
+  const fillA = new THREE.DirectionalLight(0x8899dd, 3.5);
   fillA.position.set(20, 40, 20);
   scene.add(fillA);
 
-  const fillB = new THREE.DirectionalLight(0x221133, 0.3);
+  const fillB = new THREE.DirectionalLight(0x6d5d7c, 2.2);
   fillB.position.set(-20, -10, -20);
   scene.add(fillB);
 
@@ -66,7 +67,7 @@ export function createSolarScene({ canvas, projects }) {
     size: 0.38,
     sizeAttenuation: true,
     transparent: true,
-    opacity: 0.85,
+    opacity: 1.0,
   })));
 
   const sunGroup = new THREE.Group();
@@ -82,13 +83,13 @@ export function createSolarScene({ canvas, projects }) {
       bumpMap: sunMaps.bumpMap,
       bumpScale: sunMaps.bumpScale,
       emissive: 0xff8a18,
-      emissiveIntensity: 0.28,
+      emissiveIntensity: 1.2,
     })
   );
   sunCore.userData = { idx: -1, name: 'Soleil' };
   sunGroup.add(sunCore);
 
-  [[4.4, 0xff9900, 0.13], [5.2, 0xffcc00, 0.06], [6.5, 0xffaa00, 0.03]].forEach(([r, c, o]) => {
+  [[4.4, 0xff9900, 0.22], [5.2, 0xffcc00, 0.14], [6.5, 0xffaa00, 0.08]].forEach(([r, c, o]) => {
     sunGroup.add(new THREE.Mesh(
       new THREE.SphereGeometry(r, 32, 32),
       new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: o, side: THREE.BackSide })
@@ -109,7 +110,7 @@ export function createSolarScene({ canvas, projects }) {
     const mat = new THREE.MeshToonMaterial({
       color: p.hex,
       emissive: p.emissive || 0x000000,
-      emissiveIntensity: 0.12,
+      emissiveIntensity: 0.7,
       gradientMap: gradMap,
       map: maps.map,
       bumpMap: maps.bumpMap,
@@ -134,7 +135,7 @@ export function createSolarScene({ canvas, projects }) {
           color: bandColors[b % 3],
           gradientMap: gradMap,
           transparent: true,
-          opacity: 0.55,
+          opacity: 0.75,
         })));
       }
     }
@@ -159,7 +160,7 @@ export function createSolarScene({ canvas, projects }) {
         alphaMap: ringMaps.alphaMap,
         side: THREE.DoubleSide,
         transparent: true,
-        opacity: 0.82,
+        opacity: 1.0,
       }));
       ring.rotation.x = Math.PI / 2.8;
       mesh.add(ring);
@@ -174,7 +175,7 @@ export function createSolarScene({ canvas, projects }) {
     }
     scene.add(new THREE.Line(
       new THREE.BufferGeometry().setFromPoints(pts),
-      new THREE.LineBasicMaterial({ color: 0x334466, transparent: true, opacity: 0.35 })
+      new THREE.LineBasicMaterial({ color: 0x334466, transparent: true, opacity: 0.65, linewidth: 1.5 })
     ));
   });
 

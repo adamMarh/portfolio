@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { PROJECTS, SELF_SUMMARY } from '../../data/portfolio.js';
 import { createSolarScene } from './sceneService.js';
-import { getTranslation } from '../../i18n/translations.js';
+import { getTranslation, getProjectTranslation, getPlanetName } from '../../i18n/translations.js';
 import { globalEventBus } from '../../utils/eventBus.js';
 
 function fireAnim(camera, camAnim, modeState, toPos, toLook, dur, cb) {
@@ -52,35 +52,34 @@ function fadeMesh(mesh, target, dur) {
   });
 }
 
-function populatePanel(data, language) {
-  document.getElementById('p-cat').textContent = data.category;
-  document.getElementById('p-title').textContent = data.title;
-  document.getElementById('p-sub').textContent = data.sub;
-  document.getElementById('p-desc').textContent = data.desc;
+function populatePanel(data, language, projectIdx = -1) {
+  let panelData = data;
+  
+  // If it's a project (not the sun), get the translated version
+  if (projectIdx >= 0) {
+    const translatedProject = getProjectTranslation(language, projectIdx);
+    if (translatedProject) {
+      panelData = translatedProject;
+    }
+  }
+  
+  const category = projectIdx === -1 
+    ? getTranslation(language, 'profile.category')
+    : getTranslation(language, 'panel.category');
+  
+  document.getElementById('p-cat').textContent = category;
+  document.getElementById('p-title').textContent = panelData.title;
+  document.getElementById('p-sub').textContent = panelData.sub;
+  document.getElementById('p-desc').textContent = panelData.desc;
+  
   const el = document.getElementById('p-tags');
   el.innerHTML = '';
-  data.tags.forEach((tag) => {
+  (panelData.tags || []).forEach((tag) => {
     const s = document.createElement('span');
     s.className = 'tag';
     s.textContent = tag;
     el.appendChild(s);
   });
-}
-
-function updateUILanguage(language) {
-  const backButton = document.getElementById('btn-back');
-  const hudText = document.getElementById('hud-text');
-  const dragHint = document.getElementById('drag-hint');
-
-  if (backButton) {
-    backButton.textContent = getTranslation(language, 'nav.backToSystem');
-  }
-  if (hudText) {
-    hudText.textContent = getTranslation(language, 'nav.dragToOrbit');
-  }
-  if (dragHint) {
-    dragHint.textContent = getTranslation(language, 'nav.dragToRotate');
-  }
 }
 
 export function mountPortfolioSolarSystem() {
@@ -113,6 +112,32 @@ export function mountPortfolioSolarSystem() {
   let selectedBody = null;
   const raycaster = new THREE.Raycaster();
   const mouse2d = new THREE.Vector2();
+
+  function updateUILanguage(language) {
+    const backButton = document.getElementById('btn-back');
+    const hudText = document.getElementById('hud-text');
+    const dragHint = document.getElementById('drag-hint');
+
+    if (backButton) {
+      backButton.textContent = getTranslation(language, 'nav.backToSystem');
+    }
+    if (hudText) {
+      hudText.textContent = getTranslation(language, 'nav.dragToOrbit');
+    }
+    if (dragHint) {
+      dragHint.textContent = getTranslation(language, 'nav.dragToRotate');
+    }
+
+    // Re-populate panel if it's open
+    if (modeState.mode === 'detail' && selectedIdx !== -1) {
+      const translatedProject = getProjectTranslation(language, selectedIdx);
+      if (translatedProject) {
+        populatePanel(translatedProject, language, selectedIdx);
+      }
+    } else if (modeState.mode === 'detail' && selectedIdx === -1) {
+      populatePanel(SELF_SUMMARY, language, selectedIdx);
+    }
+  }
   let dragging = false;
   let detDragging = false;
   let prevMx = 0;
@@ -176,7 +201,7 @@ export function mountPortfolioSolarSystem() {
 
     fireAnim(camera, camAnim, modeState, camTarget, wPos, 1400, () => {
       modeState.mode = 'detail';
-      populatePanel(payload, currentLanguage);
+      populatePanel(payload, currentLanguage, idx);
       setTimeout(() => panel.classList.add('open'), 40);
     });
   }
@@ -238,7 +263,12 @@ export function mountPortfolioSolarSystem() {
           tooltip.style.opacity = '1';
           tooltip.style.left = `${e.clientX}px`;
           tooltip.style.top = `${e.clientY}px`;
-          tooltip.textContent = hits[0].object.userData.name;
+          const name = hits[0].object.userData.name;
+          const idx = hits[0].object.userData.idx;
+          const displayName = idx === -1 
+            ? getTranslation(currentLanguage, 'profile.title')
+            : getPlanetName(currentLanguage, name);
+          tooltip.textContent = displayName;
         } else {
           document.body.classList.remove('is-hovering');
           tooltip.style.opacity = '0';
