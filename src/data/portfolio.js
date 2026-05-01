@@ -1,11 +1,6 @@
 export const PROJECTS = [
   {
     planet: 'Mercure',
-    category: 'Application Mobile',
-    title: 'Titre du Projet 01',
-    sub: 'React Native · Expo · TypeScript — 2024',
-    desc: 'Description de votre premier projet. Parlez des défis techniques rencontrés, de l\'architecture choisie, des technologies utilisées et de l\'impact du projet. N\'hésitez pas à mentionner ce que vous avez appris et vos contributions personnelles.',
-    tags: ['React Native', 'Expo', 'TypeScript', 'Firebase'],
     hex: 0x7f7367,
     emissive: 0x120d09,
     r: 0.45,
@@ -16,10 +11,6 @@ export const PROJECTS = [
   {
     planet: 'Vénus',
     category: 'Backend API',
-    title: 'Titre du Projet 02',
-    sub: 'Node.js · PostgreSQL · Docker — 2023',
-    desc: 'Description de votre deuxième projet. Décrivez l\'architecture backend, les endpoints créés, les problèmes de performance rencontrés et comment vous les avez résolus. Mentionnez les outils de monitoring et de déploiement utilisés.',
-    tags: ['Node.js', 'Express', 'PostgreSQL', 'Docker'],
     hex: 0xd58a3e,
     emissive: 0x2e1300,
     r: 0.72,
@@ -29,11 +20,6 @@ export const PROJECTS = [
   },
   {
     planet: 'Terre',
-    category: 'Open Source',
-    title: 'Titre du Projet 03',
-    sub: 'Python · TensorFlow · FastAPI — 2024',
-    desc: 'Votre projet open source. Parlez des contributions effectuées, de la communauté autour du projet, du nombre d\'utilisateurs ou d\'étoiles sur GitHub, des fonctionnalités principales et pourquoi ce projet vous tient à cœur.',
-    tags: ['Python', 'TensorFlow', 'scikit-learn', 'FastAPI'],
     hex: 0x3b84c9,
     emissive: 0x001a3a,
     r: 0.78,
@@ -43,11 +29,6 @@ export const PROJECTS = [
   },
   {
     planet: 'Mars',
-    category: 'Jeu Vidéo Indé',
-    title: 'Titre du Projet 04',
-    sub: 'Unity · C# · Blender — 2022',
-    desc: 'Votre jeu vidéo indépendant. Décrivez le gameplay, l\'histoire, les mécaniques originales inventées, les outils de développement utilisés, et l\'expérience acquise lors de la publication et du retour des joueurs.',
-    tags: ['Unity', 'C#', 'Game Design', 'Blender'],
     hex: 0xbf4b23,
     emissive: 0x2a0500,
     r: 0.58,
@@ -57,11 +38,6 @@ export const PROJECTS = [
   },
   {
     planet: 'Jupiter',
-    category: 'Système Distribué',
-    title: 'Titre du Projet 05',
-    sub: 'Go · Kubernetes · AWS — 2023',
-    desc: 'Votre infrastructure cloud ou système distribué. Décrivez les microservices, l\'orchestration avec Kubernetes, les défis de scalabilité rencontrés, comment vous avez géré la haute disponibilité et les stratégies de déploiement continue.',
-    tags: ['Go', 'Kubernetes', 'AWS', 'Terraform'],
     hex: 0xcf9958,
     emissive: 0x221100,
     r: 1.5,
@@ -71,11 +47,6 @@ export const PROJECTS = [
   },
   {
     planet: 'Saturne',
-    category: 'Plateforme SaaS',
-    title: 'Titre du Projet 06',
-    sub: 'Next.js · Stripe · Vercel — 2024',
-    desc: 'Votre application SaaS. Décrivez le modèle d\'affaires, les fonctionnalités clés, l\'intégration des paiements, le parcours utilisateur, le nombre d\'abonnés, et vos apprentissages en tant qu\'entrepreneur-développeur.',
-    tags: ['Next.js', 'Stripe', 'Prisma', 'Vercel'],
     hex: 0xc9b081,
     emissive: 0x201000,
     r: 1.25,
@@ -86,11 +57,6 @@ export const PROJECTS = [
   },
   {
     planet: 'Uranus',
-    category: 'Produit Data',
-    title: 'Titre du Projet 07',
-    sub: 'D3.js · WebGL · ETL — 2025',
-    desc: 'Projet orienté visualisation et analyse de données en temps réel. Décrivez les pipelines, les transformations, les indicateurs suivis et l\'impact métier obtenu.',
-    tags: ['D3.js', 'WebGL', 'ETL', 'Analytics'],
     hex: 0x87d3d8,
     emissive: 0x082026,
     r: 1.05,
@@ -100,11 +66,6 @@ export const PROJECTS = [
   },
   {
     planet: 'Neptune',
-    category: 'IA Générative',
-    title: 'Titre du Projet 08',
-    sub: 'Python · LLM · API — 2026',
-    desc: 'Plateforme IA avec génération de contenu assistée, orchestration d\'agents et observabilité. Expliquez les prompts, garde-fous, coûts d\'inférence et résultats utilisateurs.',
-    tags: ['Python', 'LLM', 'FastAPI', 'Observability'],
     hex: 0x2d63d6,
     emissive: 0x06123a,
     r: 1.02,
@@ -116,8 +77,4 @@ export const PROJECTS = [
 
 export const SELF_SUMMARY = {
   category: 'Profil',
-  title: 'Soleil',
-  sub: 'Résumé personnel',
-  desc: 'Je suis un développeur full-stack passionné par les expériences immersives, les interfaces interactives et les systèmes robustes. J\'aime transformer des idées complexes en produits clairs, performants et utiles. Ce soleil représente ma vision globale: énergie, direction, et capacité à relier design, technique et impact utilisateur.',
-  tags: ['Full-Stack', '3D Web', 'UX', 'Architecture', 'Performance'],
 };

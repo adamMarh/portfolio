@@ -295,9 +295,9 @@ body.is-hovering #canvas { cursor: pointer; }
 }
 #hud-text {
   font-family: 'Orbitron', monospace;
-  font-size: 8px;
-  letter-spacing: 0.4em;
-  color: rgba(255,255,255,0.28);
+  font-size: 12px;
+  letter-spacing: 0.6em;
+  color: rgba(255, 255, 255, 0.552);
   text-transform: uppercase;
 }
 #drag-hint {
@@ -305,9 +305,9 @@ body.is-hovering #canvas { cursor: pointer; }
   left: 0;
   top: 0;
   font-family: 'Orbitron', monospace;
-  font-size: 8px;
-  letter-spacing: 0.3em;
-  color: rgba(255,255,255,0.22);
+  font-size: 10px;
+  letter-spacing: 0.4em;
+  color: rgba(255, 255, 255, 0.552);
   text-transform: uppercase;
   pointer-events: none;
   opacity: 0;

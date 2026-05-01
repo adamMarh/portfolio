@@ -54,24 +54,32 @@ function fadeMesh(mesh, target, dur) {
 
 function populatePanel(data, language, projectIdx = -1) {
   let panelData = data;
-  
+
   // If it's a project (not the sun), get the translated version
   if (projectIdx >= 0) {
     const translatedProject = getProjectTranslation(language, projectIdx);
     if (translatedProject) {
       panelData = translatedProject;
     }
+  } else {
+    // For the sun/profile prefer translations for title/sub/desc/tags
+    panelData = {
+      title: getTranslation(language, 'profile.title'),
+      sub: getTranslation(language, 'profile.sub'),
+      desc: getTranslation(language, 'profile.desc'),
+      tags: getTranslation(language, 'profile.tags') || (data.tags || []),
+    };
   }
-  
-  const category = projectIdx === -1 
+
+  const category = projectIdx === -1
     ? getTranslation(language, 'profile.category')
     : getTranslation(language, 'panel.category');
-  
+
   document.getElementById('p-cat').textContent = category;
   document.getElementById('p-title').textContent = panelData.title;
   document.getElementById('p-sub').textContent = panelData.sub;
   document.getElementById('p-desc').textContent = panelData.desc;
-  
+
   const el = document.getElementById('p-tags');
   el.innerHTML = '';
   (panelData.tags || []).forEach((tag) => {
@@ -186,10 +194,14 @@ export function mountPortfolioSolarSystem() {
 
     const baseRadius = isSun ? 3.8 : PROJECTS[idx].r;
     const zDist = isSun ? 12.5 : (baseRadius * 5.6 + 2.8);
-    const sideOff = isSun ? -6.0 : -zDist * 1.15;
+    const sideOff = isSun ? -6.0 : -zDist * 0.7;
+    const lookSideOff = isSun ? 0 : -zDist * 0.5;
     const camTarget = wPos.clone()
       .addScaledVector(dir, zDist)
       .addScaledVector(right, sideOff)
+      .add(new THREE.Vector3(0, baseRadius * 0.85, 0));
+    const lookTarget = wPos.clone()
+      .addScaledVector(right, -lookSideOff)
       .add(new THREE.Vector3(0, baseRadius * 0.85, 0));
 
     meshes.forEach((m, i) => {
@@ -199,7 +211,7 @@ export function mountPortfolioSolarSystem() {
     dragHint.style.opacity = '1';
     hud.style.opacity = '0';
 
-    fireAnim(camera, camAnim, modeState, camTarget, wPos, 1400, () => {
+    fireAnim(camera, camAnim, modeState, camTarget, lookTarget, 1400, () => {
       modeState.mode = 'detail';
       populatePanel(payload, currentLanguage, idx);
       setTimeout(() => panel.classList.add('open'), 40);
@@ -221,7 +233,7 @@ export function mountPortfolioSolarSystem() {
     );
 
     fireAnim(camera, camAnim, modeState, ret, new THREE.Vector3(0, 0, 0), 1200, () => {
-      if (selectedIdx >= 0 && selectedBody && selectedBody.userData.baseQuaternion) {
+      if (selectedIdx >= 0 && selectedBody && selectedBody.userData && selectedBody.userData.baseQuaternion) {
         selectedBody.quaternion.copy(selectedBody.userData.baseQuaternion);
       }
       modeState.mode = 'solar';
@@ -238,7 +250,14 @@ export function mountPortfolioSolarSystem() {
     prevMy = e.clientY;
     dragDist = 0;
     if (modeState.mode === 'solar') dragging = true;
-    if (modeState.mode === 'detail') detDragging = true;
+    if (modeState.mode === 'detail') {
+      [mouse2d.x, mouse2d.y] = normMouse(e);
+      raycaster.setFromCamera(mouse2d, camera);
+      const hits = raycaster.intersectObject(selectedBody, true);
+      if (hits.length > 0) {
+        detDragging = true;
+      }
+    }
     document.body.classList.add('is-dragging');
   });
 
@@ -276,12 +295,22 @@ export function mountPortfolioSolarSystem() {
       }
     }
 
-    if (modeState.mode === 'detail' && detDragging && selectedBody) {
-      dragDist += Math.abs(dx) + Math.abs(dy);
-      selectedBody.rotation.y += dx * 0.01;
-      selectedBody.rotation.x += dy * 0.01;
-      prevMx = e.clientX;
-      prevMy = e.clientY;
+    if (modeState.mode === 'detail') {
+      if (detDragging && selectedBody) {
+        dragDist += Math.abs(dx) + Math.abs(dy);
+        
+        // Rotation around Camera Up/Right vectors mapped to world space
+        const camRight = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion).normalize();
+        const camUp = new THREE.Vector3(0, 1, 0).applyQuaternion(camera.quaternion).normalize();
+        
+        const qY = new THREE.Quaternion().setFromAxisAngle(camUp, dx * 0.005);
+        const qX = new THREE.Quaternion().setFromAxisAngle(camRight, dy * 0.005);
+        
+        selectedBody.quaternion.premultiply(qX).premultiply(qY);
+        
+        prevMx = e.clientX;
+        prevMy = e.clientY;
+      }
     }
   });
 
@@ -336,7 +365,8 @@ export function mountPortfolioSolarSystem() {
         if (i !== selectedIdx) pivots[i].rotation.y += p.orbit * dt;
       });
       if (selectedBody && !detDragging) {
-        selectedBody.rotation.y += (selectedIdx === -1 ? 0.16 : 0.22) * dt;
+        const spinRate = selectedIdx === -1 ? 0.16 : (PROJECTS[selectedIdx] ? PROJECTS[selectedIdx].spin : 0.22);
+        selectedBody.rotateY(spinRate * dt);
       }
     }
 
