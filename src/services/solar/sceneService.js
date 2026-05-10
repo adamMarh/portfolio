@@ -101,10 +101,14 @@ export function createSolarScene({ canvas, projects }) {
   const interactives = [sunCore];
 
   projects.forEach((p, idx) => {
+    if (p.available === false) {
+      return;
+    }
+
     const pivot = new THREE.Object3D();
     pivot.rotation.y = (idx / projects.length) * Math.PI * 2;
     scene.add(pivot);
-    pivots.push(pivot);
+    pivots[idx] = pivot;
 
     const maps = textureService.createPlanetMaps(p.planet, p.hex);
     const mat = new THREE.MeshToonMaterial({
@@ -120,9 +124,9 @@ export function createSolarScene({ canvas, projects }) {
     mesh.rotation.order = 'YXZ';
     mesh.position.x = p.dist;
     mesh.castShadow = true;
-    mesh.userData = { idx, name: p.planet, baseQuaternion: mesh.quaternion.clone() };
+    mesh.userData = { idx, name: p.planet, baseQuaternion: mesh.quaternion.clone(), available: true };
     pivot.add(mesh);
-    meshes.push(mesh);
+    meshes[idx] = mesh;
     interactives.push(mesh);
 
     if (p.bands) {
@@ -168,6 +172,10 @@ export function createSolarScene({ canvas, projects }) {
   });
 
   projects.forEach((p) => {
+    if (p.available === false) {
+      return;
+    }
+
     const pts = [];
     for (let i = 0; i <= 128; i++) {
       const a = (i / 128) * Math.PI * 2;

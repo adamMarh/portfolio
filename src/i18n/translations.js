@@ -11,6 +11,7 @@ export const translations = {
       open: 'Open elements',
       close: 'Close elements',
       clickToVisit: 'Click the planet to visit',
+      comingSoon: 'Coming soon',
     },
     nav: {
       backToSystem: '◄ Back to system',
@@ -113,6 +114,7 @@ export const translations = {
       open: 'Ouvrir les éléments',
       close: 'Fermer les éléments',
       clickToVisit: 'Cliquez sur la planète pour visiter',
+      comingSoon: 'Destination en préparation',
     },
     nav: {
       backToSystem: '◄ Retour au système',
@@ -131,7 +133,6 @@ export const translations = {
       Jupiter: 'Jupiter',
       Saturne: 'Saturne',
       Uranus: 'Uranus',
-      Neptune: 'Neptune',
       Soleil: 'Soleil',
     },
     profile: {

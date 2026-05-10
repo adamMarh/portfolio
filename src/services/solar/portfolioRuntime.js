@@ -226,9 +226,14 @@ export function mountPortfolioSolarSystem() {
     const isSun = idx === -1;
     const payload = isSun ? SELF_SUMMARY : PROJECTS[idx];
     selectedBody = isSun ? sunCore : meshes[idx];
+    if (!selectedBody) {
+      modeState.mode = 'solar';
+      document.body.classList.remove('is-detail-view');
+      return;
+    }
 
     const wPos = new THREE.Vector3(0, 0, 0);
-    if (!isSun) meshes[idx].getWorldPosition(wPos);
+    if (!isSun && meshes[idx]) meshes[idx].getWorldPosition(wPos);
 
     const dir = isSun ? new THREE.Vector3(0, 0, 1) : wPos.clone().normalize();
     const right = new THREE.Vector3(-dir.z, 0, dir.x).normalize();
@@ -425,12 +430,15 @@ export function mountPortfolioSolarSystem() {
 
     if (modeState.mode !== 'detail') {
       PROJECTS.forEach((p, i) => {
-        pivots[i].rotation.y += p.orbit * dt;
-        meshes[i].rotation.y += p.spin * dt;
+        const pivot = pivots[i];
+        const mesh = meshes[i];
+        if (pivot) pivot.rotation.y += p.orbit * dt;
+        if (mesh) mesh.rotation.y += p.spin * dt;
       });
     } else {
       PROJECTS.forEach((p, i) => {
-        if (i !== selectedIdx) pivots[i].rotation.y += p.orbit * dt;
+        const pivot = pivots[i];
+        if (i !== selectedIdx && pivot) pivot.rotation.y += p.orbit * dt;
       });
       if (selectedBody && !detDragging) {
         const spinRate = selectedIdx === -1 ? 0.16 : (PROJECTS[selectedIdx] ? PROJECTS[selectedIdx].spin : 0.22);
