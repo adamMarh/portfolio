@@ -14,7 +14,7 @@ export default function LanguageSwitcher() {
         title="Toggle language"
       >
         <img
-          src={language === 'fr' ? 'src/assets/french.jpg' : 'src/assets/english.png'}
+          src={language === 'fr' ? 'src/assets/french.png' : 'src/assets/english.png'}
           alt={language === 'fr' ? 'Français' : 'English'}
           className="flag-icon"
         />
@@ -29,7 +29,7 @@ export default function LanguageSwitcher() {
               setIsOpen(false);
             }}
           >
-            <img src="src/assets/french.jpg" alt="Français" className="flag-icon-small" />
+            <img src="src/assets/french.png" alt="Français" className="flag-icon-small" />
             Français
           </button>
           <button
