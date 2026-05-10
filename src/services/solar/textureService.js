@@ -1,12 +1,13 @@
 import * as THREE from 'three';
 import { drawFeltNoise, hashSeed, seededRng, shadeHex } from './math.js';
 
-function toTexture(renderer, canvasTex) {
+function toTexture(renderer, canvasTex, colorSpace = THREE.SRGBColorSpace) {
   const tex = new THREE.CanvasTexture(canvasTex);
   tex.wrapS = THREE.RepeatWrapping;
   tex.wrapT = THREE.ClampToEdgeWrapping;
   tex.repeat.set(1, 1);
   tex.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+  tex.colorSpace = colorSpace;
   tex.needsUpdate = true;
   return tex;
 }
@@ -90,7 +91,7 @@ function createSunMaps(renderer) {
 
   return {
     map: toTexture(renderer, colorCanvas),
-    bumpMap: toTexture(renderer, bumpCanvas),
+    bumpMap: toTexture(renderer, bumpCanvas, THREE.NoColorSpace),
     bumpScale: 0.12,
   };
 }
@@ -113,9 +114,9 @@ function createEarthMaps(renderer, seedText) {
   c.fillRect(0, 0, w, h);
 
   const oceanShade = c.createLinearGradient(0, 0, 0, h);
-  oceanShade.addColorStop(0, 'rgba(255,255,255,0.11)');
+  oceanShade.addColorStop(0, 'rgba(255,255,255,0.03)');
   oceanShade.addColorStop(0.5, 'rgba(255,255,255,0.00)');
-  oceanShade.addColorStop(1, 'rgba(0,0,0,0.22)');
+  oceanShade.addColorStop(1, 'rgba(0,0,0,0.05)');
   c.fillStyle = oceanShade;
   c.fillRect(0, 0, w, h);
 
@@ -131,7 +132,7 @@ function createEarthMaps(renderer, seedText) {
     [[0.57, 0.77], [0.64, 0.75], [0.65, 0.87], [0.58, 0.88]],
   ];
 
-  c.fillStyle = '#4bb07f';
+  c.fillStyle = '#006f2e';
   c.strokeStyle = 'rgba(34,73,56,0.40)';
   c.lineWidth = 2.5;
   b.fillStyle = 'rgb(210,210,210)';
@@ -157,12 +158,12 @@ function createEarthMaps(renderer, seedText) {
     b.fill();
   });
 
-  drawFeltNoise(c, w, h, 44, rng);
+  drawFeltNoise(c, w, h, 12, rng);
   drawFeltNoise(b, w, h, 24, rng);
 
   return {
     map: toTexture(renderer, colorCanvas),
-    bumpMap: toTexture(renderer, bumpCanvas),
+    bumpMap: toTexture(renderer, bumpCanvas, THREE.NoColorSpace),
     bumpScale: 0.12,
   };
 }
@@ -318,7 +319,7 @@ function createJupiterMaps(renderer, seedText) {
   drawFeltNoise(c, w, h, 36, rng);
   drawFeltNoise(b, w, h, 24, rng);
 
-  return { map: toTexture(renderer, colorCanvas), bumpMap: toTexture(renderer, bumpCanvas), bumpScale: 0.08 };
+  return { map: toTexture(renderer, colorCanvas), bumpMap: toTexture(renderer, bumpCanvas, THREE.NoColorSpace), bumpScale: 0.08 };
 }
 
 function createSaturnMaps(renderer, seedText) {
@@ -344,7 +345,7 @@ function createSaturnMaps(renderer, seedText) {
   drawFeltNoise(c, w, h, 28, rng);
   drawFeltNoise(b, w, h, 20, rng);
 
-  return { map: toTexture(renderer, colorCanvas), bumpMap: toTexture(renderer, bumpCanvas), bumpScale: 0.07 };
+  return { map: toTexture(renderer, colorCanvas), bumpMap: toTexture(renderer, bumpCanvas, THREE.NoColorSpace), bumpScale: 0.07 };
 }
 
 function createIceGiantMaps(renderer, seedText, baseHex) {
@@ -397,7 +398,7 @@ function createSaturnRingMaps(renderer, seedText) {
     a.fillRect(x, 0, 1, h);
   }
 
-  return { map: toTexture(renderer, colorCanvas), alphaMap: toTexture(renderer, alphaCanvas) };
+  return { map: toTexture(renderer, colorCanvas), alphaMap: toTexture(renderer, alphaCanvas, THREE.NoColorSpace) };
 }
 
 function createGenericPlanetMaps(renderer, seedText, baseHex) {
@@ -463,7 +464,7 @@ function createGenericPlanetMaps(renderer, seedText, baseHex) {
 
   return {
     map: toTexture(renderer, colorCanvas),
-    bumpMap: toTexture(renderer, bumpCanvas),
+    bumpMap: toTexture(renderer, bumpCanvas, THREE.NoColorSpace),
     bumpScale: 0.09,
   };
 }
