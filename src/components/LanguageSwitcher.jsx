@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import '../styles/LanguageSwitcher.css';
+import frenchFlag from '../assets/french.png';
+import englishFlag from '../assets/english.png';
 
 export default function LanguageSwitcher() {
   const { language, toggleLanguage } = useLanguage();
@@ -14,7 +16,7 @@ export default function LanguageSwitcher() {
         title="Toggle language"
       >
         <img
-          src={language === 'fr' ? 'src/assets/french.png' : 'src/assets/english.png'}
+          src={language === 'fr' ? frenchFlag : englishFlag}
           alt={language === 'fr' ? 'Français' : 'English'}
           className="flag-icon"
         />
@@ -29,7 +31,7 @@ export default function LanguageSwitcher() {
               setIsOpen(false);
             }}
           >
-            <img src="src/assets/french.png" alt="Français" className="flag-icon-small" />
+            <img src={frenchFlag} alt="Français" className="flag-icon-small" />
             Français
           </button>
           <button
@@ -39,7 +41,7 @@ export default function LanguageSwitcher() {
               setIsOpen(false);
             }}
           >
-            <img src="src/assets/english.png" alt="English" className="flag-icon-small" />
+            <img src={englishFlag} alt="English" className="flag-icon-small" />
             English
           </button>
         </div>
