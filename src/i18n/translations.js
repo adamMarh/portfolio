@@ -3,7 +3,7 @@ export const translations = {
     hero: {
       eyebrow: 'Solar portfolio',
       title: 'Portfolio in orbit',
-      subtitle: 'Open the drawer, pick a world, then click the highlighted body to dive in.',
+      subtitle: 'Open the side pannel, pick a world, then click the highlighted body to dive in.',
     },
     drawer: {
       title: 'Elements',
@@ -15,7 +15,7 @@ export const translations = {
     },
     nav: {
       backToSystem: '◄ Back to system',
-      dragToOrbit: 'Drag to orbit · Use the drawer to choose an element',
+      dragToOrbit: 'Drag to orbit · Use the side pannel to choose an element',
       dragToRotate: 'Drag to rotate',
       language: 'Language',
     },
@@ -176,7 +176,7 @@ export const translations = {
       },
       {
         category: 'Application mobile',
-        title: 'Projet de développement d’application mobile',
+        title: 'Projet d’application mobile',
         sub: 'Flutter · Firebase — Hiver 2025',
         desc: "Livré une application mobile riche en fonctionnalités (iOS/Android) utilisant Flutter avec 98% de réutilisabilité du code entre les plates-formes. Architecté un backend Firebase complet incluant Firestore pour la synchronisation des données en temps réel, Cloud Storage pour le contenu généré par les utilisateurs et Cloud Functions pour la logique métier sans serveur. Intégré plusieurs API tierces (traitement des paiements, services de cartographie, systèmes de notification) avec gestion des erreurs robuste et mécanismes de relance automatiques. Implémenté une architecture offline-first avec stratégie de mise en cache locale garantissant une UX transparente même avec une connectivité médiocre. Construit une gestion d'état sophistiquée à l'aide du pattern Provider, réalisé une couverture de tests de 95% et optimisé la taille du bundle de l'application à 45MB grâce au tree-shaking et code splitting.",
         tags: ['Flutter', 'Firebase', 'Intégration API'],

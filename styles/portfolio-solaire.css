@@ -468,6 +468,24 @@ body.is-detail-view #hud-text {
 body.is-dragging #canvas { cursor: grabbing; }
 body.is-hovering #canvas { cursor: pointer; }
 
+/* Custom fake cursor (sprite with two frames: pointer / hand) */
+/* When custom cursor is enabled, hide native cursor site-wide so our fake cursor shows everywhere */
+body.custom-cursor-enabled, body.custom-cursor-enabled * { cursor: none !important; }
+/* fake cursor element: place its top-left at the pointer so the image tip is the hotspot */
+#fake-cursor {
+  position: fixed;
+  pointer-events: none;
+  width: 24px;
+  height: 24px;
+  transform: translate(0, 0);
+  background-repeat: no-repeat;
+  background-size: contain;
+  display: block;
+  z-index: 9999;
+  background-position: left top;
+}
+/* No hardcoded background-image here; JS will swap /src/assets/cursor1.png..cursor4.png */
+
 /* Tooltip */
 #tooltip {
   position: fixed;

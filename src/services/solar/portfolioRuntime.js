@@ -100,6 +100,15 @@ export function mountPortfolioSolarSystem() {
   const backButton = document.getElementById('btn-back');
   const selectionArrow = document.getElementById('selection-arrow');
 
+  // create a fake cursor element that will display our custom pointer/hand
+  const fakeCursor = document.createElement('div');
+  fakeCursor.id = 'fake-cursor';
+  document.body.appendChild(fakeCursor);
+  document.body.classList.add('custom-cursor-enabled');
+
+  // use one cursor PNG for everything
+  fakeCursor.style.backgroundImage = "url('/src/assets/cursors1.png')";
+
   let currentLanguage = localStorage.getItem('portfolio-language') || 'fr';
 
   const sceneState = createSolarScene({ canvas, projects: PROJECTS });
@@ -175,8 +184,7 @@ export function mountPortfolioSolarSystem() {
       sph.r * Math.cos(sph.phi),
       sph.r * Math.sin(sph.phi) * Math.cos(sph.theta)
     );
-    camera.lookAt(0, 0, 0);
-    camAnim.curLook.set(0, 0, 0);
+    camera.lookAt(camAnim.curLook);
   }
 
   function normMouse(e) {
@@ -308,6 +316,10 @@ export function mountPortfolioSolarSystem() {
       }
     }
     document.body.classList.add('is-dragging');
+    if (fakeCursor) {
+      fakeCursor.style.display = '';
+      // background already set once; nothing else to do
+    }
   });
 
   canvas.addEventListener('mousemove', (e) => {
@@ -372,12 +384,29 @@ export function mountPortfolioSolarSystem() {
         prevMy = e.clientY;
       }
     }
+
+      // update fake cursor position and image
+      if (fakeCursor) {
+        fakeCursor.style.left = `${e.clientX}px`;
+        fakeCursor.style.top = `${e.clientY}px`;
+      }
   });
+      // Ensure cursor follows pointer even when over UI (panel/drawer), not just canvas
+      document.addEventListener('mousemove', (e) => {
+        if (!fakeCursor) return;
+        fakeCursor.style.left = `${e.clientX}px`;
+        fakeCursor.style.top = `${e.clientY}px`;
+      }, { passive: true });
+  // removed separate mousemove handler; fake cursor position and image updated inside main mousemove handler
 
   canvas.addEventListener('mouseup', () => {
     dragging = false;
     detDragging = false;
     document.body.classList.remove('is-dragging');
+    if (fakeCursor) {
+      // on mouseup revert to base image (already set)
+      fakeCursor.classList.remove('click');
+    }
   });
 
   canvas.addEventListener('mouseleave', () => {
@@ -385,6 +414,9 @@ export function mountPortfolioSolarSystem() {
     detDragging = false;
     tooltip.style.opacity = '0';
     document.body.classList.remove('is-dragging', 'is-hovering');
+    if (fakeCursor) {
+      fakeCursor.classList.remove('click');
+    }
   });
 
   canvas.addEventListener('click', (e) => {
@@ -400,7 +432,42 @@ export function mountPortfolioSolarSystem() {
     }
   });
 
-  canvas.addEventListener('wheel', (e) => e.preventDefault(), { passive: false });
+  // Pointer-centered zoom: zoom towards the world point under the cursor (or the y=0 plane)
+  canvas.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    if (modeState.mode === 'animating') return;
+
+    const rect = canvas.getBoundingClientRect();
+    const mx = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+    const my = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+    mouse2d.set(mx, my);
+    raycaster.setFromCamera(mouse2d, camera);
+    const hits = raycaster.intersectObjects(interactives);
+
+    const point = new THREE.Vector3();
+    if (hits.length > 0) {
+      point.copy(hits[0].point);
+    } else {
+      const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+      if (!raycaster.ray.intersectPlane(plane, point)) point.set(0, 0, 0);
+    }
+
+    // scale factor: <1 zooms in (wheel up gives negative deltaY), >1 zooms out
+    const scale = Math.exp(e.deltaY * 0.0012);
+
+    const curLook = camAnim.curLook.clone();
+    const camOffset = camera.position.clone().sub(point).multiplyScalar(scale);
+    const lookOffset = curLook.clone().sub(point).multiplyScalar(scale);
+
+    camera.position.copy(point.clone().add(camOffset));
+    camAnim.curLook.copy(point.clone().add(lookOffset));
+    camera.lookAt(camAnim.curLook);
+
+    // update spherical coords to keep other code in sync
+    sph.r = camera.position.length();
+    sph.theta = Math.atan2(camera.position.x, camera.position.z);
+    sph.phi = Math.acos(camera.position.y / camera.position.length());
+  }, { passive: false });
   canvas.addEventListener('contextmenu', (e) => e.preventDefault());
   backButton.addEventListener('click', exitDetail);
 
