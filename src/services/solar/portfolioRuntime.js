@@ -98,6 +98,7 @@ export function mountPortfolioSolarSystem() {
   const dragHint = document.getElementById('drag-hint');
   const introFade = document.getElementById('intro-fade');
   const backButton = document.getElementById('btn-back');
+  const selectionArrow = document.getElementById('selection-arrow');
 
   let currentLanguage = localStorage.getItem('portfolio-language') || 'fr';
 
@@ -118,8 +119,24 @@ export function mountPortfolioSolarSystem() {
 
   let selectedIdx = -1;
   let selectedBody = null;
+  let selectedTargetIdx = null;
+  let selectedTargetBody = null;
   const raycaster = new THREE.Raycaster();
   const mouse2d = new THREE.Vector2();
+
+  function clearSelectionTarget() {
+    selectedTargetIdx = null;
+    selectedTargetBody = null;
+    if (selectionArrow) {
+      selectionArrow.style.opacity = '0';
+    }
+  }
+
+  function setSelectionTarget(idx) {
+    selectedTargetIdx = idx;
+    selectedTargetBody = idx === -1 ? sunCore : meshes[idx];
+    updateSelectionArrowPosition();
+  }
 
   function updateUILanguage(language) {
     const backButton = document.getElementById('btn-back');
@@ -177,9 +194,33 @@ export function mountPortfolioSolarSystem() {
     dragHint.style.top = `${Math.min(H() - 32, y + 88)}px`;
   }
 
+  function updateSelectionArrowPosition() {
+    if (!selectionArrow || modeState.mode !== 'solar' || selectedTargetIdx === null || !selectedTargetBody) {
+      if (selectionArrow) {
+        selectionArrow.style.opacity = '0';
+      }
+      return;
+    }
+
+    const worldPos = new THREE.Vector3();
+    selectedTargetBody.getWorldPosition(worldPos);
+    worldPos.project(camera);
+
+    const x = (worldPos.x * 0.5 + 0.5) * W();
+    const y = (-worldPos.y * 0.5 + 0.5) * H();
+    const baseRadius = selectedTargetIdx === -1 ? 3.8 : PROJECTS[selectedTargetIdx].r;
+
+    selectionArrow.style.left = `${x}px`;
+    selectionArrow.style.top = `${Math.max(72, y - (baseRadius * 24 + 42))}px`;
+    selectionArrow.style.opacity = '1';
+  }
+
   function enterDetail(idx) {
+    clearSelectionTarget();
+    globalEventBus.emit('portfolio-target-cleared');
     tooltip.style.opacity = '0';
     document.body.classList.remove('is-hovering');
+    document.body.classList.add('is-detail-view');
     selectedIdx = idx;
 
     const isSun = idx === -1;
@@ -239,6 +280,9 @@ export function mountPortfolioSolarSystem() {
       modeState.mode = 'solar';
       selectedIdx = -1;
       selectedBody = null;
+      document.body.classList.remove('is-detail-view');
+      // restore HUD when returning to solar view
+      if (hud) hud.style.opacity = '1';
       camera.lookAt(0, 0, 0);
       camAnim.curLook.set(0, 0, 0);
     });
@@ -299,13 +343,24 @@ export function mountPortfolioSolarSystem() {
       if (detDragging && selectedBody) {
         dragDist += Math.abs(dx) + Math.abs(dy);
         
-        // Rotation around Camera Up/Right vectors mapped to world space
+        // Rotate around screen-space axes, mapped into the body's parent space.
         const camRight = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion).normalize();
         const camUp = new THREE.Vector3(0, 1, 0).applyQuaternion(camera.quaternion).normalize();
-        
-        const qY = new THREE.Quaternion().setFromAxisAngle(camUp, dx * 0.005);
-        const qX = new THREE.Quaternion().setFromAxisAngle(camRight, dy * 0.005);
-        
+
+        const parent = selectedBody.parent;
+        if (parent) {
+          parent.updateMatrixWorld(true);
+          const invParent = new THREE.Matrix4().copy(parent.matrixWorld).invert();
+          camRight.transformDirection(invParent);
+          camUp.transformDirection(invParent);
+        }
+
+        const yaw = dx * 0.005;
+        const pitch = dy * 0.005;
+
+        const qY = new THREE.Quaternion().setFromAxisAngle(camUp, yaw);
+        const qX = new THREE.Quaternion().setFromAxisAngle(camRight, pitch);
+
         selectedBody.quaternion.premultiply(qX).premultiply(qY);
         
         prevMx = e.clientX;
@@ -332,7 +387,12 @@ export function mountPortfolioSolarSystem() {
     [mouse2d.x, mouse2d.y] = normMouse(e);
     raycaster.setFromCamera(mouse2d, camera);
     const hits = raycaster.intersectObjects(interactives);
-    if (hits.length > 0) enterDetail(hits[0].object.userData.idx);
+    if (hits.length > 0) {
+      const hitIdx = hits[0].object.userData.idx;
+      if (selectedTargetIdx === null || selectedTargetIdx === hitIdx) {
+        enterDetail(hitIdx);
+      }
+    }
   });
 
   canvas.addEventListener('wheel', (e) => e.preventDefault(), { passive: false });
@@ -342,6 +402,14 @@ export function mountPortfolioSolarSystem() {
   globalEventBus.on('language-changed', (data) => {
     currentLanguage = data.language;
     updateUILanguage(currentLanguage);
+  });
+
+  globalEventBus.on('portfolio-target-picked', ({ idx }) => {
+    setSelectionTarget(idx);
+  });
+
+  globalEventBus.on('portfolio-target-cleared', () => {
+    clearSelectionTarget();
   });
 
   updateUILanguage(currentLanguage);
@@ -372,6 +440,7 @@ export function mountPortfolioSolarSystem() {
 
     tickAnim(camera, camAnim, modeState);
     updateDragHintPosition();
+    updateSelectionArrowPosition();
     renderer.render(scene, camera);
   }
   animate();

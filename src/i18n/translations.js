@@ -1,8 +1,20 @@
 export const translations = {
   en: {
+    hero: {
+      eyebrow: 'Solar portfolio',
+      title: 'Portfolio in orbit',
+      subtitle: 'Open the drawer, pick a world, then click the highlighted body to dive in.',
+    },
+    drawer: {
+      title: 'Elements',
+      subtitle: 'Every body in the system',
+      open: 'Open elements',
+      close: 'Close elements',
+      clickToVisit: 'Click the planet to visit',
+    },
     nav: {
       backToSystem: '◄ Back to system',
-      dragToOrbit: 'Drag to orbit · Click on a planet',
+      dragToOrbit: 'Drag to orbit · Use the drawer to choose an element',
       dragToRotate: 'Drag to rotate',
       language: 'Language',
     },
@@ -90,9 +102,21 @@ export const translations = {
     },
   },
   fr: {
+    hero: {
+      eyebrow: 'Portfolio solaire',
+      title: 'Portfolio en orbite',
+      subtitle: 'Ouvrez le drawer, choisissez un monde, puis cliquez sur le corps mis en évidence pour entrer.',
+    },
+    drawer: {
+      title: 'Éléments',
+      subtitle: 'Chaque corps du système',
+      open: 'Ouvrir les éléments',
+      close: 'Fermer les éléments',
+      clickToVisit: 'Cliquez sur la planète pour visiter',
+    },
     nav: {
       backToSystem: '◄ Retour au système',
-      dragToOrbit: 'Glisser pour orbiter · Cliquer sur une planète',
+      dragToOrbit: 'Glisser pour orbiter · Utiliser le drawer pour choisir un élément',
       dragToRotate: 'Glisser pour faire tourner',
       language: 'Langue',
     },
