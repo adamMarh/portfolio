@@ -2,13 +2,7 @@ export const translations = {
   en: {
     hero: {
       eyebrow: 'Solar portfolio',
-      title: 'Portfolio in orbit',
-      subtitle: 'Open the drawer, pick a world, then click the highlighted body to dive in.',
-    },
-    drawer: {
-      title: 'Elements',
-      subtitle: 'Every body in the system',
-      open: 'Open elements',
+      title: 'ADAM MARHRAOUI',
       close: 'Close elements',
       clickToVisit: 'Click the planet to visit',
       comingSoon: 'Coming soon',
@@ -110,7 +104,7 @@ export const translations = {
   fr: {
     hero: {
       eyebrow: 'Portfolio solaire',
-      title: 'Portfolio en orbite',
+      title: 'ADAM MARHRAOUI',
       subtitle: 'Ouvrez le panneau, choisissez un monde, puis cliquez sur le corps mis en évidence pour explorer son projet.',
     },
     drawer: {
