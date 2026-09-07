@@ -3,5 +3,5 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
-  base: provess.env.VITE_BASE_PATH || "/portfolio/tree/prod"
+  base: provess.env.VITE_BASE_PATH || "/portfolio"
 });
