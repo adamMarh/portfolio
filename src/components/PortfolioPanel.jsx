@@ -8,7 +8,8 @@ export default function PortfolioPanel() {
         <h1 className="proj-title" id="p-title">—</h1>
         <div className="proj-sub" id="p-sub">—</div>
         <div className="divider" />
-        <p className="proj-desc" id="p-desc">—</p>
+        <div className="proj-desc" id="p-desc">—</div>
+        <div className="project-links" id="p-links" aria-label="Project links" />
         <div className="tags" id="p-tags" />
         <button id="btn-back">◄ Retour au système</button>
       </div>
