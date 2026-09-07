@@ -3,6 +3,12 @@ export const translations = {
     hero: {
       eyebrow: 'Solar portfolio',
       title: 'ADAM MARHRAOUI',
+      subtitle: 'Open the drawer, pick a world, then click the highlighted body to dive in.',
+    },
+    drawer: {
+      title: 'Elements',
+      subtitle: 'Every body in the system',
+      open: 'Open elements',
       close: 'Close elements',
       clickToVisit: 'Click the planet to visit',
       comingSoon: 'Coming soon',
