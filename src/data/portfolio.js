@@ -67,6 +67,8 @@ export const PROJECTS = [
     planet: 'Neptune',
     appearance: 'holographic',
     available: false,
+    appearance: 'holographic',
+    available: false,
     hex: 0x2d63d6,
     emissive: 0x06123a,
     r: 1.02,

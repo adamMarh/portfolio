@@ -6,6 +6,7 @@ import PortfolioHud from './PortfolioHud.jsx';
 import PortfolioSelectionArrow from './PortfolioSelectionArrow.jsx';
 import PortfolioPanel from './PortfolioPanel.jsx';
 import PortfolioTitle from './PortfolioTitle.jsx';
+import PortfolioZoom from './PortfolioZoom.jsx';
 
 export default function PortfolioOverlay() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -46,6 +47,7 @@ export default function PortfolioOverlay() {
       <div id="tooltip" />
       <PortfolioPanel />
       <PortfolioHud />
+      <PortfolioZoom />
     </div>
   );
 }
