@@ -1,6 +1,6 @@
 import { PROJECTS } from '../data/portfolio.js';
 import { useLanguage } from '../context/LanguageContext.jsx';
-import { getPlanetName, getTranslation, getProjectTranslation } from '../i18n/translations.js';
+import { getPlanetName, getProjectTranslation, getTranslation } from '../i18n/translations.js';
 
 function buildCelestialThumb({ color, accent = color, ring = false, isSun = false, appearance = 'planetary' }) {
   const hex = color.toString(16).padStart(6, '0');
@@ -78,26 +78,27 @@ export default function PortfolioDrawer({ isOpen, activeIndex, onToggle, onSelec
     {
       idx: -1,
       name: getTranslation(language, 'profile.title'),
-      meta: getTranslation(language, 'profile.category'),
+      meta: getPlanetName(language, 'Soleil'),
       color: 0xffd768,
       accent: 0xff8a18,
       isSun: true,
       appearance: 'planetary',
     },
     ...PROJECTS.map((project, idx) => {
-      const projectData = getProjectTranslation(language, idx);
-      const isAvailable = project.available !== false;
+      const projectTranslation = getProjectTranslation(language, idx);
+      const planetName = getPlanetName(language, project.planet);
+
       return {
         idx,
-        name: getPlanetName(language, project.planet),
-        meta: isAvailable
-          ? projectData?.title || `Project ${idx + 1}`
-          : getTranslation(language, 'drawer.comingSoon'),
+        name: project.available === false
+          ? getTranslation(language, project.statusKey || 'drawer.comingSoon')
+          : (projectTranslation?.title || planetName),
+        meta: planetName,
         color: project.hex,
         accent: project.emissive || project.hex,
         ring: Boolean(project.ring),
         appearance: project.available === false ? 'holographic' : (project.appearance || 'planetary'),
-        available: isAvailable,
+        available: project.available !== false,
       };
     }),
   ];

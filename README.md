@@ -1,47 +1,37 @@
 # Portfolio Solaire
 
-Interactive portfolio web app built with React, Vite, and Three.js. The experience is centered around a solar-system-style interface with bilingual content and a language switcher.
+Interactive bilingual portfolio built with React, Vite, and Three.js. Projects are presented as a navigable solar system: the drawer selects a body, the Three.js scene animates the camera into a detail view, and the panel displays verified project and experience content in English or French.
 
 ## Features
 
-- React + Vite setup for fast local development
-- Three.js scene rendered through a custom portfolio runtime
-- Bilingual content with language switching
-- Modular UI components for the overlay, HUD, and canvas layers
+- React 19 and Vite development/build workflow
+- Custom Three.js solar-system scene with orbiting, selection, camera transitions, and procedural visual styling
+- Responsive detail panel with project tags and structured internship bullets
+- English/French language switcher with content stored in `src/i18n/translations.js`
+- Modular UI components for the drawer, HUD, overlay, panel, and canvas
 
-## Getting Started
-
-Install dependencies:
+## Getting started
 
 ```bash
 npm install
-```
-
-Run the development server:
-
-```bash
 npm run dev
 ```
 
-Create a production build:
+Build and preview the production bundle:
 
 ```bash
 npm run build
-```
-
-Preview the production build:
-
-```bash
 npm run preview
 ```
 
-## Project Structure
+## Architecture
 
-- `src/components` contains the portfolio UI pieces
-- `src/services` contains scene loading and Three.js runtime logic
-- `src/context` and `src/i18n` handle language state and translations
-- `styles/portfolio-solaire.css` contains the main visual styling
+- `src/components/` — React overlay and navigation components
+- `src/services/solar/` — Three.js scene, runtime, texture, and math services
+- `src/data/portfolio.js` — solar-system project metadata
+- `src/i18n/translations.js` — bilingual profile and project copy
+- `styles/portfolio-solaire.css` — visual system and responsive layout
 
-## Notes
+## Content policy
 
-The app is designed as a single-page experience. Most of the interactive behavior is controlled from the scene loader and the portfolio runtime modules.
+Project descriptions are based on the source repositories and the accompanying resume. Ongoing work is labelled as such, and prototype or dataset-only projects are not presented as production applications.

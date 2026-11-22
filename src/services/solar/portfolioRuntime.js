@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { animate } from "motion";
 import { PROJECTS, SELF_SUMMARY } from '../../data/portfolio.js';
 import { createSolarScene } from './sceneService.js';
 import { getTranslation, getProjectTranslation, getPlanetName } from '../../i18n/translations.js';
@@ -52,6 +53,50 @@ function fadeMesh(mesh, target, dur) {
   });
 }
 
+function createJumpGate() {
+  const gate = document.createElement("div");
+  gate.id = "jump-gate";
+  gate.setAttribute("aria-live", "assertive");
+  gate.setAttribute("role", "status");
+  gate.innerHTML = [
+    "<div class=\"jump-stars\" aria-hidden=\"true\"></div>",
+    "<div class=\"jump-caption\">Establishing transmission</div>",
+    "<div class=\"jump-portal\" aria-hidden=\"true\"></div>",
+    "<div class=\"jump-destination\"></div>",
+  ].join("");
+  document.body.appendChild(gate);
+  return gate;
+}
+
+
+
+async function playJumpAnimation(url, label) {
+  const gate = document.getElementById("jump-gate") || createJumpGate();
+  const caption = gate.querySelector(".jump-caption");
+  const galaxy = gate.querySelector(".jump-portal");
+  const destination = gate.querySelector(".jump-destination");
+  caption.textContent = "Entering the galaxy";
+  destination.textContent = new URL(url).hostname.replace("www.", "");
+  document.body.classList.add("is-jumping");
+  gate.classList.add("is-active");
+
+  const animations = [
+    animate(gate, { opacity: [0, 1] }, { duration: 0.45, easing: "ease-out" }),
+    animate(galaxy, { opacity: [0, 1, 1], transform: ["translate(-50%, -50%) rotate(-12deg) scale(0.08)", "translate(-50%, -50%) rotate(2deg) scale(1.6)", "translate(-50%, -50%) rotate(18deg) scale(5.5)"] }, { duration: 4.2, easing: "cubic-bezier(0.16, 1, 0.3, 1)" }),
+  ];
+
+  await Promise.all(animations.map((animation) => animation.finished));
+  window.location.replace(url);
+}
+
+function launchJump(url, label) {
+  if (document.body.classList.contains("is-jumping")) return;
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    window.location.assign(url);
+    return;
+  }
+  playJumpAnimation(url, label);
+}
 function populatePanel(data, language, projectIdx = -1) {
   let panelData = data;
 
@@ -67,7 +112,9 @@ function populatePanel(data, language, projectIdx = -1) {
       title: getTranslation(language, 'profile.title'),
       sub: getTranslation(language, 'profile.sub'),
       desc: getTranslation(language, 'profile.desc'),
+      internships: getTranslation(language, 'profile.internships'),
       tags: getTranslation(language, 'profile.tags') || (data.tags || []),
+      links: getTranslation(language, 'profile.links')
     };
   }
 
@@ -78,7 +125,66 @@ function populatePanel(data, language, projectIdx = -1) {
   document.getElementById('p-cat').textContent = category;
   document.getElementById('p-title').textContent = panelData.title;
   document.getElementById('p-sub').textContent = panelData.sub;
-  document.getElementById('p-desc').textContent = panelData.desc;
+  const description = document.getElementById("p-desc");
+  const isProfile = projectIdx === -1;
+  description.className = isProfile ? "proj-desc profile-description" : "proj-desc";
+  description.textContent = "";
+
+  const intro = document.createElement("p");
+  intro.className = "profile-intro";
+  intro.textContent = panelData.desc;
+  description.appendChild(intro);
+
+  if (Array.isArray(panelData.internships)) {
+    const heading = document.createElement("h2");
+    heading.className = "profile-section-title";
+    heading.textContent = language === "fr" ? "Expérience professionnelle" : "Professional experience";
+    description.appendChild(heading);
+
+    const list = document.createElement("div");
+    list.className = "profile-internships";
+    panelData.internships.forEach((internship) => {
+      const item = document.createElement("article");
+      item.className = "profile-internship";
+      const separator = internship.indexOf(": ");
+      const headingText = separator > -1 ? internship.slice(0, separator) : internship;
+      const detailText = separator > -1 ? internship.slice(separator + 2) : "";
+
+      const itemHeading = document.createElement("h3");
+      const role = document.createElement("span");
+      role.className = "profile-role";
+      const company = document.createElement("span");
+      company.className = "profile-company";
+      const titleParts = headingText.split(" — ");
+      role.textContent = titleParts[0];
+      company.textContent = titleParts.slice(1).join(" — ");
+      itemHeading.appendChild(role);
+      if (company.textContent) itemHeading.appendChild(company);
+      item.appendChild(itemHeading);
+      if (detailText) {
+        const detail = document.createElement("p");
+        detail.textContent = detailText;
+        item.appendChild(detail);
+      }
+      list.appendChild(item);
+    });
+    description.appendChild(list);
+  }
+
+  const links = document.getElementById("p-links");
+  links.textContent = "";
+  (Array.isArray(panelData.links) ? panelData.links : []).forEach((link) => {
+    if (!link?.url || !/^https?:\/\//.test(link.url)) return;
+    const anchor = document.createElement("a");
+    anchor.className = "project-link";
+    anchor.href = link.url;
+    anchor.textContent = link.label;
+    anchor.addEventListener("click", (event) => {
+      event.preventDefault();
+      launchJump(link.url, link.label);
+    });
+    links.appendChild(anchor);
+  });
 
   const el = document.getElementById('p-tags');
   el.innerHTML = '';

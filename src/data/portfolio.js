@@ -10,7 +10,6 @@ export const PROJECTS = [
   },
   {
     planet: 'Vénus',
-    category: 'Backend API',
     hex: 0xd58a3e,
     emissive: 0x2e1300,
     r: 0.72,
@@ -68,13 +67,15 @@ export const PROJECTS = [
     planet: 'Neptune',
     appearance: 'holographic',
     available: false,
+    appearance: 'holographic',
+    available: false,
     hex: 0x2d63d6,
     emissive: 0x06123a,
     r: 1.02,
     dist: 69,
     orbit: 0.0045,
     spin: 0.62,
-  },
+  }
 ];
 
 export const SELF_SUMMARY = {
