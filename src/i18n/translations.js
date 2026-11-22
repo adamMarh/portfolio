@@ -107,7 +107,7 @@ export const translations = {
         category: 'Browser Extension',
         title: 'Gemineat — Cart Macros',
         sub: 'Chrome Extension · JavaScript · Gemini — 2026',
-        desc: 'Co-built with three teammates, a Manifest V3 Chrome extension that reads the cart on any online grocery site, totals its macronutrients, compares them to the user\'s goals (cut, maintain, bulk or recomp), and suggests better swaps. Gemini reads the page through schema-constrained JSON prompts, so no site-specific scraping is needed. By default it runs on Chrome\'s built-in Gemini Nano, so cart text never leaves the machine; the Gemini API is an optional engine. Calorie and macro targets come from deterministic, unit-tested formulas rather than the model.',
+        desc: 'A Manifest V3 Chrome extension that reads the cart on any online grocery site, totals its macronutrients, compares them to the user\'s goals (cut, maintain, bulk or recomp), and suggests better swaps. Gemini reads the page through schema-constrained JSON prompts, so no site-specific scraping is needed. By default it runs on Chrome\'s built-in Gemini Nano, so cart text never leaves the machine; the Gemini API is an optional engine. Calorie and macro targets come from deterministic, unit-tested formulas rather than the model.',
         tags: ['JavaScript', 'Chrome Extension', 'Gemini', 'Gemini Nano', 'Prompt Engineering'],
         links: [{ label: 'View repository', url: 'https://github.com/adamMarh/Gemineat' }],
       },
