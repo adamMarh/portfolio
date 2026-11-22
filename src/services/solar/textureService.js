@@ -385,16 +385,25 @@ function createSaturnRingMaps(renderer, seedText) {
   a.fillStyle = 'rgba(0,0,0,0)';
   a.fillRect(0, 0, w, h);
 
+  // Soft, irregular ringlets with a dark Cassini-style gap: translucent bands,
+  // not a stripe pattern.
+  const phase = rng() * 10;
   for (let x = 0; x < w; x++) {
     const t = x / (w - 1);
-    const band = 0.25 + 0.5 * Math.sin(t * Math.PI * 30 + rng() * 0.25);
-    const bright = Math.floor(140 + band * 90);
-    c.fillStyle = `rgb(${bright},${bright - 18},${bright - 40})`;
+    const band = 0.5
+      + 0.22 * Math.sin(t * 19 + phase)
+      + 0.14 * Math.sin(t * 47 + phase * 2)
+      + 0.08 * Math.sin(t * 113 + phase * 3);
+    const bright = Math.floor(150 + band * 70);
+    c.fillStyle = `rgb(${bright},${bright - 14},${bright - 36})`;
     c.fillRect(x, 0, 1, h);
 
-    const edge = Math.min(1, Math.min(t * 5, (1 - t) * 5));
-    const alpha = 0.15 + edge * 0.55;
-    a.fillStyle = `rgba(255,255,255,${alpha.toFixed(3)})`;
+    const edge = Math.min(1, Math.min(t * 6, (1 - t) * 4));
+    const gap = 1 - 0.85 * Math.exp(-Math.pow((t - 0.62) / 0.025, 2));
+    const alpha = (0.2 + band * 0.55) * edge * gap;
+    // alphaMap reads the green channel, so encode alpha as grey, not canvas alpha.
+    const level = Math.round(alpha * 255);
+    a.fillStyle = `rgb(${level},${level},${level})`;
     a.fillRect(x, 0, 1, h);
   }
 

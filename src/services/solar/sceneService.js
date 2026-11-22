@@ -11,15 +11,25 @@ function createGradMap(steps = 4) {
   return t;
 }
 
-export function createSolarScene({ canvas, projects }) {
+// The renderer is owned by the stage controller and shared with the room scene.
+const START_PHASES = [0.3, 2.2, 4.0, 1.2, 2.9, 0.9, 1.9, 2.5];
+
+// Fresnel rim on the toon planets so their night side still reads against space.
+function addRimLight(material, hex) {
+  const rimColor = new THREE.Color(hex).lerp(new THREE.Color(0xffffff), 0.55);
+  material.onBeforeCompile = (shader) => {
+    shader.uniforms.uRim = { value: rimColor };
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <common>', '#include <common>\nuniform vec3 uRim;')
+      .replace('#include <dithering_fragment>', `#include <dithering_fragment>
+        float rimTerm = pow(1.0 - abs(dot(normalize(normal), normalize(vViewPosition))), 3.0);
+        gl_FragColor.rgb += uRim * rimTerm * 0.55 * opacity;`);
+  };
+}
+
+export function createSolarScene({ renderer, projects }) {
   const W = () => window.innerWidth;
   const H = () => window.innerHeight;
-
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
-  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-  renderer.setSize(W(), H());
-  renderer.outputColorSpace = THREE.SRGBColorSpace;
-  renderer.toneMapping = THREE.NoToneMapping;
 
   const textureService = createTextureService(renderer);
 
@@ -89,11 +99,32 @@ export function createSolarScene({ canvas, projects }) {
   sunCore.userData = { idx: -1, name: 'Soleil' };
   sunGroup.add(sunCore);
 
-  [[4.4, 0xff9900, 0.22], [5.2, 0xffcc00, 0.14], [6.5, 0xffaa00, 0.08]].forEach(([r, c, o]) => {
-    sunGroup.add(new THREE.Mesh(
-      new THREE.SphereGeometry(r, 32, 32),
-      new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: o, side: THREE.BackSide })
-    ));
+  // Corona: additive camera-facing glow, so the sun reads as light, not a disc with rings.
+  const glowCanvas = document.createElement('canvas');
+  glowCanvas.width = glowCanvas.height = 256;
+  const g = glowCanvas.getContext('2d');
+  const grad = g.createRadialGradient(128, 128, 0, 128, 128, 128);
+  grad.addColorStop(0, 'rgba(255,240,190,1)');
+  grad.addColorStop(0.18, 'rgba(255,205,110,0.75)');
+  grad.addColorStop(0.42, 'rgba(255,150,50,0.22)');
+  grad.addColorStop(1, 'rgba(255,120,30,0)');
+  g.fillStyle = grad;
+  g.fillRect(0, 0, 256, 256);
+  const glowTex = new THREE.CanvasTexture(glowCanvas);
+  glowTex.colorSpace = THREE.SRGBColorSpace;
+  const corona = [];
+  [[19, 0.9], [34, 0.35]].forEach(([size, opacity]) => {
+    const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
+      map: glowTex,
+      transparent: true,
+      opacity,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    }));
+    sprite.scale.setScalar(size);
+    sprite.userData.baseOpacity = opacity;
+    corona.push(sprite);
+    sunGroup.add(sprite);
   });
 
   const pivots = [];
@@ -106,7 +137,9 @@ export function createSolarScene({ canvas, projects }) {
     }
 
     const pivot = new THREE.Object3D();
-    pivot.rotation.y = (idx / projects.length) * Math.PI * 2;
+    // Starting phases keep every body on the far side or flanks of the opening
+    // view, so none sits half-clipped at the bottom edge.
+    pivot.rotation.y = START_PHASES[idx % START_PHASES.length];
     scene.add(pivot);
     pivots[idx] = pivot;
 
@@ -120,7 +153,8 @@ export function createSolarScene({ canvas, projects }) {
       bumpMap: maps.bumpMap,
       bumpScale: maps.bumpScale,
     });
-    const mesh = new THREE.Mesh(new THREE.SphereGeometry(p.r, 32, 32), mat);
+    addRimLight(mat, p.hex);
+    const mesh = new THREE.Mesh(new THREE.SphereGeometry(p.r, 48, 48), mat);
     mesh.rotation.order = 'YXZ';
     mesh.position.x = p.dist;
     mesh.castShadow = true;
@@ -157,13 +191,15 @@ export function createSolarScene({ canvas, projects }) {
         uvs[i * 2 + 1] = (v.y / outer + 1) / 2;
       }
       rGeo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
-      const ring = new THREE.Mesh(rGeo, new THREE.MeshToonMaterial({
-        color: 0xc8a86b,
-        gradientMap: gradMap,
+      const ring = new THREE.Mesh(rGeo, new THREE.MeshStandardMaterial({
+        color: 0xe2cfa4,
         map: ringMaps.map,
         alphaMap: ringMaps.alphaMap,
         side: THREE.DoubleSide,
         transparent: true,
+        depthWrite: false,
+        roughness: 1,
+        metalness: 0,
         opacity: 1.0,
       }));
       ring.rotation.x = Math.PI / 2.8;
@@ -196,6 +232,7 @@ export function createSolarScene({ canvas, projects }) {
     sph,
     sunGroup,
     sunCore,
+    corona,
     pivots,
     meshes,
     interactives,

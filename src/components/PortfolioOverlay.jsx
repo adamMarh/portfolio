@@ -1,53 +1,49 @@
-import { useEffect, useState } from 'react';
-import { globalEventBus } from '../utils/eventBus.js';
-import PortfolioCanvas from './PortfolioCanvas.jsx';
-import PortfolioDrawer from './PortfolioDrawer.jsx';
-import PortfolioHud from './PortfolioHud.jsx';
-import PortfolioSelectionArrow from './PortfolioSelectionArrow.jsx';
+import { useEffect } from 'react';
+import { useLanguage } from '../context/LanguageContext.jsx';
+import { getTranslation } from '../i18n/translations.js';
+import { useStage, useStageReady } from '../hooks/useStage.js';
+import RoomOverlay from './RoomOverlay.jsx';
+import SiteTopBar from './SiteTopBar.jsx';
+import ProjectIndex from './ProjectIndex.jsx';
 import PortfolioPanel from './PortfolioPanel.jsx';
-import PortfolioTitle from './PortfolioTitle.jsx';
+import PortfolioSelectionArrow from './PortfolioSelectionArrow.jsx';
 import PortfolioZoom from './PortfolioZoom.jsx';
+import SiteHint from './SiteHint.jsx';
+import LaunchToast from './LaunchToast.jsx';
 
 export default function PortfolioOverlay() {
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [activeTargetIdx, setActiveTargetIdx] = useState(null);
+  const { language } = useLanguage();
+  const stage = useStage();
+  const ready = useStageReady();
 
+  // After the dive, move keyboard focus into the portfolio.
   useEffect(() => {
-    const stopPicked = globalEventBus.on('portfolio-target-picked', ({ idx }) => {
-      setActiveTargetIdx(idx);
-      setIsDrawerOpen(false);
-    });
-
-    const stopCleared = globalEventBus.on('portfolio-target-cleared', () => {
-      setActiveTargetIdx(null);
-    });
-
-    return () => {
-      stopPicked();
-      stopCleared();
-    };
-  }, []);
+    if (stage === 'site') document.getElementById('portfolio')?.focus({ preventScroll: true });
+  }, [stage]);
 
   return (
-    <div className="portfolio-app">
-      <PortfolioTitle />
-      <PortfolioDrawer
-        isOpen={isDrawerOpen}
-        activeIndex={activeTargetIdx}
-        onToggle={() => setIsDrawerOpen((current) => !current)}
-        onSelect={(idx) => {
-          setActiveTargetIdx(idx);
-          setIsDrawerOpen(false);
-          globalEventBus.emit('portfolio-target-picked', { idx });
-        }}
+    <div className={`portfolio-app ${ready ? 'is-ready' : ''}`}>
+      <canvas
+        id="canvas"
+        role="img"
+        aria-label={stage === 'site' ? getTranslation(language, 'site.hint') : getTranslation(language, 'room.sceneLabel')}
       />
+
+      <RoomOverlay />
+
+      <div className="site-ui" inert={stage !== 'site'}>
+        <SiteTopBar />
+        <ProjectIndex />
+        <PortfolioPanel />
+        <SiteHint />
+        <PortfolioZoom />
+      </div>
+
+      <LaunchToast />
       <PortfolioSelectionArrow />
-      <div id="intro-fade" />
-      <PortfolioCanvas />
-      <div id="tooltip" />
-      <PortfolioPanel />
-      <PortfolioHud />
-      <PortfolioZoom />
+      <div id="tooltip" aria-hidden="true" />
+      <div id="stage-fade" aria-hidden="true" />
+      <div id="intro-fade" aria-hidden="true" />
     </div>
   );
 }

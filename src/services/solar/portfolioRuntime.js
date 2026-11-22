@@ -1,13 +1,16 @@
 import * as THREE from 'three';
-import { animate } from "motion";
-import { PROJECTS, SELF_SUMMARY } from '../../data/portfolio.js';
+import { PROJECTS } from '../../data/portfolio.js';
 import { createSolarScene } from './sceneService.js';
-import { getTranslation, getProjectTranslation, getPlanetName } from '../../i18n/translations.js';
+import { getTranslation, getPlanetName } from '../../i18n/translations.js';
 import { globalEventBus } from '../../utils/eventBus.js';
-import cursorImage from '../../assets/cursors1.png';
-import { debugLog } from '../../utils/debugLog.js';
+import { stage } from '../stage/state.js';
 
-let jumpClickedAt = 0;
+// The solar-system portfolio. It no longer owns the renderer or the frame loop:
+// the stage controller renders it into the CRT in the room and full screen on
+// the site, and calls update() every frame. Input only counts in the site stage.
+
+const START_POS = new THREE.Vector3(-4, 24, 82);
+const INTRO_FROM = new THREE.Vector3(-8, 34, 98);
 
 function fireAnim(camera, camAnim, modeState, toPos, toLook, dur, cb) {
   camAnim.from.copy(camera.position);
@@ -15,7 +18,7 @@ function fireAnim(camera, camAnim, modeState, toPos, toLook, dur, cb) {
   camAnim.lookFrom.copy(camAnim.curLook);
   camAnim.lookTo.copy(toLook);
   camAnim.start = performance.now();
-  camAnim.dur = dur;
+  camAnim.dur = window.__stageDebugFast ? 1 : dur;
   camAnim.cb = cb;
   modeState.mode = 'animating';
 }
@@ -37,224 +40,55 @@ function tickAnim(camera, camAnim, modeState) {
   }
 }
 
-function fadeMat(mat, target, dur) {
+function fadeMat(mat, target, dur, onDone) {
   mat.transparent = true;
+  // A ghosted body must not write depth, or it cuts a dark disc out of the stars.
+  mat.depthWrite = target >= 1;
   const from = mat.opacity;
   const start = performance.now();
+  if (window.__stageDebugFast) dur = 1;
   function tick(now) {
     const t = Math.min((now - start) / dur, 1);
     const e = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
     mat.opacity = from + (target - from) * e;
     if (t < 1) requestAnimationFrame(tick);
+    else onDone?.();
   }
   requestAnimationFrame(tick);
 }
 
+// Bodies that step aside fade out completely and leave the scene, so no ghost
+// disc can show over the sun or along the panel edge.
 function fadeMesh(mesh, target, dur) {
-  fadeMat(mesh.material, target, dur);
+  if (!mesh) return;
+  if (target > 0) mesh.visible = true;
+  fadeMat(mesh.material, target, dur, () => {
+    if (target === 0) mesh.visible = false;
+  });
   mesh.children.forEach((c) => {
     if (c.isMesh) fadeMat(c.material, target, dur);
   });
 }
 
-function createJumpGate() {
-  const gate = document.createElement("div");
-  gate.id = "jump-gate";
-  gate.setAttribute("aria-live", "assertive");
-  gate.setAttribute("role", "status");
-  gate.innerHTML = [
-    "<div class=\"jump-stars\" aria-hidden=\"true\"></div>",
-    "<div class=\"jump-caption\">Establishing transmission</div>",
-    "<div class=\"jump-portal\" aria-hidden=\"true\"></div>",
-    "<div class=\"jump-destination\"></div>",
-  ].join("");
-  document.body.appendChild(gate);
-  return gate;
-}
-
-
-
-async function playJumpAnimation(url, label) {
-  const gate = document.getElementById("jump-gate") || createJumpGate();
-  const caption = gate.querySelector(".jump-caption");
-  const galaxy = gate.querySelector(".jump-portal");
-  const destination = gate.querySelector(".jump-destination");
-  caption.textContent = "Entering the galaxy";
-  destination.textContent = new URL(url).hostname.replace("www.", "");
-  document.body.classList.add("is-jumping");
-  gate.classList.add("is-active");
-
-  const animations = [
-    animate(gate, { opacity: [0, 1] }, { duration: 0.45, easing: "ease-out" }),
-    animate(galaxy, { opacity: [0, 1, 1], transform: ["translate(-50%, -50%) rotate(-12deg) scale(0.08)", "translate(-50%, -50%) rotate(2deg) scale(1.6)", "translate(-50%, -50%) rotate(18deg) scale(5.5)"] }, { duration: 4.2, easing: "cubic-bezier(0.16, 1, 0.3, 1)" }),
-  ];
-
-  await Promise.all(animations.map((animation) => animation.finished));
-  debugLog('jump:navigating', { url, msSinceClick: Math.round(performance.now() - jumpClickedAt) });
-  // assign (not replace) keeps the portfolio in history so the Back button returns here.
-  window.location.assign(url);
-}
-
-// When the user comes back with the Back button, the browser may restore this page
-// from its back/forward cache exactly as it was left: overlay fully opaque and the
-// "is-jumping" lock still set. Clear that state so the portfolio is usable again.
-function resetJumpGate() {
-  document.body.classList.remove("is-jumping");
-  const gate = document.getElementById("jump-gate");
-  if (!gate) return;
-  gate.classList.remove("is-active");
-  gate.style.opacity = "0";
-  const portal = gate.querySelector(".jump-portal");
-  if (portal) {
-    portal.style.opacity = "0";
-    portal.style.transform = "";
-  }
-}
-
-window.addEventListener("pageshow", (event) => {
-  debugLog('page:pageshow', { persisted: event.persisted, jumping: document.body.classList.contains("is-jumping") });
-  if (event.persisted) resetJumpGate();
-});
-
-function launchJump(url, label) {
-  if (document.body.classList.contains("is-jumping")) return;
-  jumpClickedAt = performance.now();
-  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-    debugLog('jump:navigating', { url, msSinceClick: 0 });
-    window.location.assign(url);
-    return;
-  }
-  playJumpAnimation(url, label);
-}
-function populatePanel(data, language, projectIdx = -1) {
-  let panelData = data;
-
-  // If it's a project (not the sun), get the translated version
-  if (projectIdx >= 0) {
-    const translatedProject = getProjectTranslation(language, projectIdx);
-    if (translatedProject) {
-      panelData = translatedProject;
-    }
-  } else {
-    // For the sun/profile prefer translations for title/sub/desc/tags
-    panelData = {
-      title: getTranslation(language, 'profile.title'),
-      sub: getTranslation(language, 'profile.sub'),
-      desc: getTranslation(language, 'profile.desc'),
-      internships: getTranslation(language, 'profile.internships'),
-      tags: getTranslation(language, 'profile.tags') || (data.tags || []),
-      links: getTranslation(language, 'profile.links')
-    };
-  }
-
-  const category = projectIdx === -1
-    ? getTranslation(language, 'profile.category')
-    : getTranslation(language, 'panel.category');
-
-  document.getElementById('p-cat').textContent = category;
-  document.getElementById('p-title').textContent = panelData.title;
-  document.getElementById('p-sub').textContent = panelData.sub;
-  const description = document.getElementById("p-desc");
-  const isProfile = projectIdx === -1;
-  description.className = isProfile ? "proj-desc profile-description" : "proj-desc";
-  description.textContent = "";
-
-  const intro = document.createElement("p");
-  intro.className = "profile-intro";
-  intro.textContent = panelData.desc;
-  description.appendChild(intro);
-
-  if (Array.isArray(panelData.internships)) {
-    const heading = document.createElement("h2");
-    heading.className = "profile-section-title";
-    heading.textContent = language === "fr" ? "Expérience professionnelle" : "Professional experience";
-    description.appendChild(heading);
-
-    const list = document.createElement("div");
-    list.className = "profile-internships";
-    panelData.internships.forEach((internship) => {
-      const item = document.createElement("article");
-      item.className = "profile-internship";
-      const separator = internship.indexOf(": ");
-      const headingText = separator > -1 ? internship.slice(0, separator) : internship;
-      const detailText = separator > -1 ? internship.slice(separator + 2) : "";
-
-      const itemHeading = document.createElement("h3");
-      const role = document.createElement("span");
-      role.className = "profile-role";
-      const company = document.createElement("span");
-      company.className = "profile-company";
-      const titleParts = headingText.split(" — ");
-      role.textContent = titleParts[0];
-      company.textContent = titleParts.slice(1).join(" — ");
-      itemHeading.appendChild(role);
-      if (company.textContent) itemHeading.appendChild(company);
-      item.appendChild(itemHeading);
-      if (detailText) {
-        const detail = document.createElement("p");
-        detail.textContent = detailText;
-        item.appendChild(detail);
-      }
-      list.appendChild(item);
-    });
-    description.appendChild(list);
-  }
-
-  const links = document.getElementById("p-links");
-  links.textContent = "";
-  (Array.isArray(panelData.links) ? panelData.links : []).forEach((link) => {
-    if (!link?.url || !/^https?:\/\//.test(link.url)) return;
-    const anchor = document.createElement("a");
-    anchor.className = "project-link";
-    anchor.href = link.url;
-    anchor.textContent = link.label;
-    anchor.addEventListener("click", (event) => {
-      event.preventDefault();
-      launchJump(link.url, link.label);
-    });
-    links.appendChild(anchor);
-  });
-
-  const el = document.getElementById('p-tags');
-  el.innerHTML = '';
-  (panelData.tags || []).forEach((tag) => {
-    const s = document.createElement('span');
-    s.className = 'tag';
-    s.textContent = tag;
-    el.appendChild(s);
+function setMeshOpacity(mesh, value) {
+  if (!mesh) return;
+  mesh.material.opacity = value;
+  mesh.material.depthWrite = value >= 1;
+  mesh.visible = value > 0;
+  mesh.children.forEach((c) => {
+    if (c.isMesh) c.material.opacity = value;
   });
 }
 
-export function mountPortfolioSolarSystem() {
-  const navEntry = performance.getEntriesByType('navigation')[0];
-  debugLog('page:mount', {
-    navigationType: navEntry?.type, // navigate | reload | back_forward
-    url: location.href,
-    referrer: document.referrer || '(none)',
-  });
-
-  const canvas = document.getElementById('canvas');
+export function mountPortfolioSolarSystem({ renderer, canvas }) {
   const tooltip = document.getElementById('tooltip');
-  const panel = document.getElementById('panel');
-  const hud = document.getElementById('hud');
   const dragHint = document.getElementById('drag-hint');
-  const introFade = document.getElementById('intro-fade');
-  const backButton = document.getElementById('btn-back');
   const selectionArrow = document.getElementById('selection-arrow');
-
-  // create a fake cursor element that will display our custom pointer/hand
-  const fakeCursor = document.createElement('div');
-  fakeCursor.id = 'fake-cursor';
-  document.body.appendChild(fakeCursor);
-  document.body.classList.add('custom-cursor-enabled');
-
-  // use one cursor PNG for everything
-  fakeCursor.style.backgroundImage = `url('${cursorImage}')`;
 
   let currentLanguage = localStorage.getItem('portfolio-language') || 'fr';
 
-  const sceneState = createSolarScene({ canvas, projects: PROJECTS });
-  const { renderer, scene, camera, sph, sunGroup, sunCore, pivots, meshes, interactives, W, H } = sceneState;
+  const sceneState = createSolarScene({ renderer, projects: PROJECTS });
+  const { scene, camera, sph, sunGroup, sunCore, corona, pivots, meshes, interactives, W, H } = sceneState;
 
   const modeState = { mode: 'solar' };
   const camAnim = {
@@ -269,12 +103,9 @@ export function mountPortfolioSolarSystem() {
   };
 
   // Zoom bounds, expressed as camera distance to the look target.
-  // The startup framing is the most zoomed-out state.
-  const ZOOM_MAX_DIST = new THREE.Vector3(-4, 24, 82).length();
+  const ZOOM_MAX_DIST = START_POS.length();
   const ZOOM_MIN_DIST = 12;
   let lastEmittedZoom = 0;
-
-  // level 0 = max zoomed out, 1 = max zoomed in (log scale so each step feels even)
   const distToZoomLevel = (d) =>
     Math.min(1, Math.max(0, Math.log(ZOOM_MAX_DIST / d) / Math.log(ZOOM_MAX_DIST / ZOOM_MIN_DIST)));
   const zoomLevelToDist = (level) => ZOOM_MAX_DIST * Math.pow(ZOOM_MIN_DIST / ZOOM_MAX_DIST, level);
@@ -303,57 +134,181 @@ export function mountPortfolioSolarSystem() {
     lastEmittedZoom = level;
   }
 
+  let firstInteractionSent = false;
+  function noteInteraction() {
+    if (firstInteractionSent) return;
+    firstInteractionSent = true;
+    globalEventBus.emit('portfolio-first-interaction');
+  }
+
   let selectedIdx = -1;
   let selectedBody = null;
-  let selectedTargetIdx = null;
-  let selectedTargetBody = null;
+  let previewIdx = null;
   const raycaster = new THREE.Raycaster();
   const mouse2d = new THREE.Vector2();
 
-  function clearSelectionTarget() {
-    selectedTargetIdx = null;
-    selectedTargetBody = null;
-    if (selectionArrow) {
+  const bodyFor = (idx) => (idx === -1 ? sunCore : meshes[idx]);
+  const radiusFor = (idx) => (idx === -1 ? 3.8 : PROJECTS[idx].r);
+
+  function updateSelectionArrowPosition() {
+    if (!selectionArrow) return;
+    if (stage.current !== 'site' || modeState.mode !== 'solar' || previewIdx === null) {
       selectionArrow.style.opacity = '0';
+      return;
     }
+    const worldPos = new THREE.Vector3();
+    bodyFor(previewIdx).getWorldPosition(worldPos);
+    worldPos.project(camera);
+    const x = (worldPos.x * 0.5 + 0.5) * W();
+    const y = (-worldPos.y * 0.5 + 0.5) * H();
+    selectionArrow.style.transform = `translate3d(${x}px, ${Math.max(84, y - (radiusFor(previewIdx) * 24 + 30))}px, 0) translate(-50%, -100%)`;
+    selectionArrow.style.opacity = '1';
   }
 
-  function setSelectionTarget(idx) {
-    selectedTargetIdx = idx;
-    selectedTargetBody = idx === -1 ? sunCore : meshes[idx];
-    updateSelectionArrowPosition();
+  function updateDragHintPosition() {
+    if (!dragHint || modeState.mode !== 'detail' || !selectedBody) return;
+    const worldPos = new THREE.Vector3();
+    selectedBody.getWorldPosition(worldPos);
+    // Sit just below the body's on-screen disc, whatever its size.
+    const camUp = new THREE.Vector3(0, 1, 0).applyQuaternion(camera.quaternion);
+    const edge = worldPos.clone().addScaledVector(camUp, -radiusFor(selectedIdx)).project(camera);
+    worldPos.project(camera);
+    const x = (worldPos.x * 0.5 + 0.5) * W();
+    const y = (-edge.y * 0.5 + 0.5) * H();
+    dragHint.style.transform = `translate3d(${x}px, ${Math.min(H() - 40, y + 22)}px, 0) translate(-50%, 0)`;
   }
 
-  function updateUILanguage(language) {
-    const backButton = document.getElementById('btn-back');
-    const hudText = document.getElementById('hud-text');
-    const dragHint = document.getElementById('drag-hint');
+  function detailFraming(idx) {
+    const isSun = idx === -1;
+    const baseRadius = radiusFor(idx);
+    // On narrow screens the panel is a bottom sheet: centre the body and lift it.
+    const narrow = W() < 900;
+    const up = new THREE.Vector3(0, 1, 0);
 
-    if (backButton) {
-      backButton.textContent = getTranslation(language, 'nav.backToSystem');
-    }
-    if (hudText) {
-      hudText.textContent = getTranslation(language, 'nav.dragToOrbit');
-    }
-    if (dragHint) {
-      dragHint.textContent = getTranslation(language, 'nav.dragToRotate');
+    if (isSun) {
+      const camTarget = new THREE.Vector3(0, baseRadius * 1.6, 19);
+      const lookTarget = new THREE.Vector3(0, baseRadius * 0.85 + (narrow ? -baseRadius * 1.4 : 0), 0);
+      return { camTarget, lookTarget };
     }
 
-    // Re-populate panel if it's open
-    if (modeState.mode === 'detail' && selectedIdx !== -1) {
-      const translatedProject = getProjectTranslation(language, selectedIdx);
-      if (translatedProject) {
-        populatePanel(translatedProject, language, selectedIdx);
+    // Look at the planet side-on to the sun: the sun sits ~60-75 degrees off axis,
+    // out of frame, so the body is framed against space and lit from one side.
+    const wPos = new THREE.Vector3();
+    meshes[idx].getWorldPosition(wPos);
+    const dir = wPos.clone().normalize();
+    let tangent = new THREE.Vector3().crossVectors(up, dir).normalize();
+    const forwardOf = (t) => t.clone().negate();
+    const rightOf = (t) => new THREE.Vector3().crossVectors(forwardOf(t), up).normalize();
+    // Keep the sun (and its glow) on the left, behind the panel side.
+    if (rightOf(tangent).dot(dir) < 0) tangent = tangent.negate();
+
+    const zDist = baseRadius * 5.6 + 2.8;
+    const lift = baseRadius * 0.6;
+    const camTarget = wPos.clone().addScaledVector(tangent, zDist).add(new THREE.Vector3(0, lift, 0));
+    const lookTarget = wPos.clone().add(new THREE.Vector3(0, lift * 0.5, 0));
+    // On desktop the stage shifts the projection centre right of the panel
+    // (a view offset, not a rotation), which keeps the sun out of frame.
+    if (narrow) lookTarget.y -= baseRadius * 2.2;
+    return { camTarget, lookTarget };
+  }
+
+  function enterDetail(idx) {
+    const body = bodyFor(idx);
+    if (!body) return;
+    const switching = modeState.mode === 'detail';
+    if (switching && idx === selectedIdx) return;
+
+    if (switching && selectedBody?.userData?.baseQuaternion) {
+      selectedBody.quaternion.copy(selectedBody.userData.baseQuaternion);
+    }
+
+    previewIdx = null;
+    tooltip.style.opacity = '0';
+    document.body.classList.remove('is-hovering');
+    document.body.classList.add('is-detail-view');
+    globalEventBus.emit(switching ? 'portfolio-detail-switching' : 'portfolio-detail-opening', { idx });
+
+    selectedIdx = idx;
+    selectedBody = body;
+
+    const { camTarget, lookTarget } = detailFraming(idx);
+    meshes.forEach((m, i) => fadeMesh(m, i === idx ? 1 : 0, 600));
+    if (dragHint) dragHint.style.opacity = '1';
+
+    fireAnim(camera, camAnim, modeState, camTarget, lookTarget, switching ? 1100 : 1400, () => {
+      modeState.mode = 'detail';
+      globalEventBus.emit('portfolio-detail-opened', { idx });
+    });
+  }
+
+  function exitDetail() {
+    if (modeState.mode !== 'detail') return;
+    globalEventBus.emit('portfolio-detail-closing');
+    if (dragHint) dragHint.style.opacity = '0';
+    modeState.mode = 'animating';
+    meshes.forEach((m) => fadeMesh(m, 1.0, 600));
+
+    const ret = new THREE.Vector3(
+      sph.r * Math.sin(sph.phi) * Math.sin(sph.theta),
+      sph.r * Math.cos(sph.phi),
+      sph.r * Math.sin(sph.phi) * Math.cos(sph.theta)
+    );
+
+    fireAnim(camera, camAnim, modeState, ret, new THREE.Vector3(0, 0, 0), 1200, () => {
+      if (selectedBody?.userData?.baseQuaternion) {
+        selectedBody.quaternion.copy(selectedBody.userData.baseQuaternion);
       }
-    } else if (modeState.mode === 'detail' && selectedIdx === -1) {
-      populatePanel(SELF_SUMMARY, language, selectedIdx);
-    }
+      modeState.mode = 'solar';
+      selectedIdx = -1;
+      selectedBody = null;
+      document.body.classList.remove('is-detail-view');
+      camera.lookAt(0, 0, 0);
+      camAnim.curLook.set(0, 0, 0);
+      emitZoomLevel();
+      globalEventBus.emit('portfolio-detail-closed');
+    });
   }
+
+  // Instant return to the system overview (used before powering the CRT off).
+  function resetView() {
+    if (selectedBody?.userData?.baseQuaternion) {
+      selectedBody.quaternion.copy(selectedBody.userData.baseQuaternion);
+    }
+    meshes.forEach((m) => setMeshOpacity(m, 1));
+    selectedIdx = -1;
+    selectedBody = null;
+    previewIdx = null;
+    camAnim.cb = null;
+    modeState.mode = 'solar';
+    camera.position.copy(START_POS);
+    camAnim.curLook.set(0, 0, 0);
+    camera.lookAt(0, 0, 0);
+    syncSphFromCamera();
+    document.body.classList.remove('is-detail-view', 'is-hovering');
+    if (dragHint) dragHint.style.opacity = '0';
+    tooltip.style.opacity = '0';
+    globalEventBus.emit('portfolio-detail-closed');
+    emitZoomLevel();
+  }
+
+  function playIntro() {
+    resetView();
+    camera.position.copy(INTRO_FROM);
+    camera.lookAt(0, 0, 0);
+    fireAnim(camera, camAnim, modeState, START_POS.clone(), new THREE.Vector3(0, 0, 0), 1700, () => {
+      modeState.mode = 'solar';
+      syncSphFromCamera();
+    });
+  }
+
+  // ---------- input (site stage only) ----------
   let dragging = false;
   let detDragging = false;
   let prevMx = 0;
   let prevMy = 0;
   let dragDist = 0;
+
+  const active = () => stage.current === 'site';
 
   function applySph() {
     camera.position.set(
@@ -368,119 +323,8 @@ export function mountPortfolioSolarSystem() {
     return [(e.clientX / W()) * 2 - 1, -(e.clientY / H()) * 2 + 1];
   }
 
-  function updateDragHintPosition() {
-    if (!dragHint || modeState.mode !== 'detail' || !selectedBody) return;
-    const worldPos = new THREE.Vector3();
-    selectedBody.getWorldPosition(worldPos);
-    worldPos.project(camera);
-    const x = (worldPos.x * 0.5 + 0.5) * W();
-    const y = (-worldPos.y * 0.5 + 0.5) * H();
-    dragHint.style.left = `${x}px`;
-    dragHint.style.top = `${Math.min(H() - 32, y + 88)}px`;
-  }
-
-  function updateSelectionArrowPosition() {
-    if (!selectionArrow || modeState.mode !== 'solar' || selectedTargetIdx === null || !selectedTargetBody) {
-      if (selectionArrow) {
-        selectionArrow.style.opacity = '0';
-      }
-      return;
-    }
-
-    const worldPos = new THREE.Vector3();
-    selectedTargetBody.getWorldPosition(worldPos);
-    worldPos.project(camera);
-
-    const x = (worldPos.x * 0.5 + 0.5) * W();
-    const y = (-worldPos.y * 0.5 + 0.5) * H();
-    const baseRadius = selectedTargetIdx === -1 ? 3.8 : PROJECTS[selectedTargetIdx].r;
-
-    selectionArrow.style.left = `${x}px`;
-    selectionArrow.style.top = `${Math.max(72, y - (baseRadius * 24 + 42))}px`;
-    selectionArrow.style.opacity = '1';
-  }
-
-  function enterDetail(idx) {
-    clearSelectionTarget();
-    globalEventBus.emit('portfolio-target-cleared');
-    tooltip.style.opacity = '0';
-    document.body.classList.remove('is-hovering');
-    document.body.classList.add('is-detail-view');
-    selectedIdx = idx;
-
-    const isSun = idx === -1;
-    const payload = isSun ? SELF_SUMMARY : PROJECTS[idx];
-    selectedBody = isSun ? sunCore : meshes[idx];
-    if (!selectedBody) {
-      modeState.mode = 'solar';
-      document.body.classList.remove('is-detail-view');
-      return;
-    }
-
-    const wPos = new THREE.Vector3(0, 0, 0);
-    if (!isSun && meshes[idx]) meshes[idx].getWorldPosition(wPos);
-
-    const dir = isSun ? new THREE.Vector3(0, 0, 1) : wPos.clone().normalize();
-    const right = new THREE.Vector3(-dir.z, 0, dir.x).normalize();
-
-    const baseRadius = isSun ? 3.8 : PROJECTS[idx].r;
-    const zDist = isSun ? 12.5 : (baseRadius * 5.6 + 2.8);
-    const sideOff = isSun ? -6.0 : -zDist * 0.7;
-    const lookSideOff = isSun ? 0 : -zDist * 0.5;
-    const camTarget = wPos.clone()
-      .addScaledVector(dir, zDist)
-      .addScaledVector(right, sideOff)
-      .add(new THREE.Vector3(0, baseRadius * 0.85, 0));
-    const lookTarget = wPos.clone()
-      .addScaledVector(right, -lookSideOff)
-      .add(new THREE.Vector3(0, baseRadius * 0.85, 0));
-
-    meshes.forEach((m, i) => {
-      if (isSun || i !== idx) fadeMesh(m, 0.07, 700);
-    });
-
-    dragHint.style.opacity = '1';
-    hud.style.opacity = '0';
-
-    fireAnim(camera, camAnim, modeState, camTarget, lookTarget, 1400, () => {
-      modeState.mode = 'detail';
-      populatePanel(payload, currentLanguage, idx);
-      setTimeout(() => panel.classList.add('open'), 40);
-    });
-  }
-
-  function exitDetail() {
-    if (modeState.mode !== 'detail') return;
-    panel.classList.remove('open');
-    dragHint.style.opacity = '0';
-    modeState.mode = 'animating';
-
-    meshes.forEach((m) => fadeMesh(m, 1.0, 600));
-
-    const ret = new THREE.Vector3(
-      sph.r * Math.sin(sph.phi) * Math.sin(sph.theta),
-      sph.r * Math.cos(sph.phi),
-      sph.r * Math.sin(sph.phi) * Math.cos(sph.theta)
-    );
-
-    fireAnim(camera, camAnim, modeState, ret, new THREE.Vector3(0, 0, 0), 1200, () => {
-      if (selectedIdx >= 0 && selectedBody && selectedBody.userData && selectedBody.userData.baseQuaternion) {
-        selectedBody.quaternion.copy(selectedBody.userData.baseQuaternion);
-      }
-      modeState.mode = 'solar';
-      selectedIdx = -1;
-      selectedBody = null;
-      document.body.classList.remove('is-detail-view');
-      // restore HUD when returning to solar view
-      if (hud) hud.style.opacity = '1';
-      camera.lookAt(0, 0, 0);
-      camAnim.curLook.set(0, 0, 0);
-      emitZoomLevel();
-    });
-  }
-
-  canvas.addEventListener('mousedown', (e) => {
-    if (modeState.mode === 'animating') return;
+  canvas.addEventListener('pointerdown', (e) => {
+    if (!active() || modeState.mode === 'animating') return;
     prevMx = e.clientX;
     prevMy = e.clientY;
     dragDist = 0;
@@ -488,46 +332,39 @@ export function mountPortfolioSolarSystem() {
     if (modeState.mode === 'detail') {
       [mouse2d.x, mouse2d.y] = normMouse(e);
       raycaster.setFromCamera(mouse2d, camera);
-      const hits = raycaster.intersectObject(selectedBody, true);
-      if (hits.length > 0) {
-        detDragging = true;
-      }
+      if (raycaster.intersectObject(selectedBody, true).length > 0) detDragging = true;
     }
+    canvas.setPointerCapture?.(e.pointerId);
     document.body.classList.add('is-dragging');
-    if (fakeCursor) {
-      fakeCursor.style.display = '';
-      // background already set once; nothing else to do
-    }
   });
 
-  canvas.addEventListener('mousemove', (e) => {
+  canvas.addEventListener('pointermove', (e) => {
+    if (!active()) return;
     const dx = e.clientX - prevMx;
     const dy = e.clientY - prevMy;
 
     if (modeState.mode === 'solar') {
       if (dragging) {
         dragDist += Math.abs(dx) + Math.abs(dy);
+        if (dragDist > 5) noteInteraction();
         sph.theta -= dx * 0.005;
         sph.phi = Math.max(0.22, Math.min(Math.PI * 0.72, sph.phi - dy * 0.005));
         applySph();
         emitZoomLevel();
         prevMx = e.clientX;
         prevMy = e.clientY;
-      } else {
+      } else if (e.pointerType === 'mouse') {
         [mouse2d.x, mouse2d.y] = normMouse(e);
         raycaster.setFromCamera(mouse2d, camera);
         const hits = raycaster.intersectObjects(interactives);
         if (hits.length > 0) {
           document.body.classList.add('is-hovering');
           tooltip.style.opacity = '1';
-          tooltip.style.left = `${e.clientX}px`;
-          tooltip.style.top = `${e.clientY}px`;
-          const name = hits[0].object.userData.name;
-          const idx = hits[0].object.userData.idx;
-          const displayName = idx === -1 
+          tooltip.style.transform = `translate3d(${e.clientX}px, ${e.clientY}px, 0) translate(-50%, calc(-100% - 14px))`;
+          const { name, idx } = hits[0].object.userData;
+          tooltip.textContent = idx === -1
             ? getTranslation(currentLanguage, 'profile.title')
             : getPlanetName(currentLanguage, name);
-          tooltip.textContent = displayName;
         } else {
           document.body.classList.remove('is-hovering');
           tooltip.style.opacity = '0';
@@ -535,94 +372,61 @@ export function mountPortfolioSolarSystem() {
       }
     }
 
-    if (modeState.mode === 'detail') {
-      if (detDragging && selectedBody) {
-        dragDist += Math.abs(dx) + Math.abs(dy);
-        
-        // Rotate around screen-space axes, mapped into the body's parent space.
-        const camRight = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion).normalize();
-        const camUp = new THREE.Vector3(0, 1, 0).applyQuaternion(camera.quaternion).normalize();
-
-        const parent = selectedBody.parent;
-        if (parent) {
-          parent.updateMatrixWorld(true);
-          const invParent = new THREE.Matrix4().copy(parent.matrixWorld).invert();
-          camRight.transformDirection(invParent);
-          camUp.transformDirection(invParent);
-        }
-
-        const yaw = dx * 0.005;
-        const pitch = dy * 0.005;
-
-        const qY = new THREE.Quaternion().setFromAxisAngle(camUp, yaw);
-        const qX = new THREE.Quaternion().setFromAxisAngle(camRight, pitch);
-
-        selectedBody.quaternion.premultiply(qX).premultiply(qY);
-        
-        prevMx = e.clientX;
-        prevMy = e.clientY;
+    if (modeState.mode === 'detail' && detDragging && selectedBody) {
+      dragDist += Math.abs(dx) + Math.abs(dy);
+      const camRight = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion).normalize();
+      const camUp = new THREE.Vector3(0, 1, 0).applyQuaternion(camera.quaternion).normalize();
+      const parent = selectedBody.parent;
+      if (parent) {
+        parent.updateMatrixWorld(true);
+        const invParent = new THREE.Matrix4().copy(parent.matrixWorld).invert();
+        camRight.transformDirection(invParent);
+        camUp.transformDirection(invParent);
       }
+      const qY = new THREE.Quaternion().setFromAxisAngle(camUp, dx * 0.005);
+      const qX = new THREE.Quaternion().setFromAxisAngle(camRight, dy * 0.005);
+      selectedBody.quaternion.premultiply(qX).premultiply(qY);
+      prevMx = e.clientX;
+      prevMy = e.clientY;
     }
+  }, { passive: true });
 
-      // update fake cursor position and image
-      if (fakeCursor) {
-        fakeCursor.style.left = `${e.clientX}px`;
-        fakeCursor.style.top = `${e.clientY}px`;
-      }
-  });
-      // Ensure cursor follows pointer even when over UI (panel/drawer), not just canvas
-      document.addEventListener('mousemove', (e) => {
-        if (!fakeCursor) return;
-        fakeCursor.style.left = `${e.clientX}px`;
-        fakeCursor.style.top = `${e.clientY}px`;
-      }, { passive: true });
-  // removed separate mousemove handler; fake cursor position and image updated inside main mousemove handler
-
-  canvas.addEventListener('mouseup', () => {
+  const endDrag = () => {
     dragging = false;
     detDragging = false;
     document.body.classList.remove('is-dragging');
-    if (fakeCursor) {
-      // on mouseup revert to base image (already set)
-      fakeCursor.classList.remove('click');
-    }
-  });
-
-  canvas.addEventListener('mouseleave', () => {
-    dragging = false;
-    detDragging = false;
+  };
+  canvas.addEventListener('pointerup', endDrag);
+  canvas.addEventListener('pointercancel', endDrag);
+  canvas.addEventListener('pointerleave', () => {
+    if (!active()) return;
+    endDrag();
     tooltip.style.opacity = '0';
-    document.body.classList.remove('is-dragging', 'is-hovering');
-    if (fakeCursor) {
-      fakeCursor.classList.remove('click');
-    }
+    document.body.classList.remove('is-hovering');
   });
 
   canvas.addEventListener('click', (e) => {
-    if (modeState.mode !== 'solar' || dragDist > 5) return;
+    if (!active() || modeState.mode !== 'solar' || dragDist > 5) return;
     [mouse2d.x, mouse2d.y] = normMouse(e);
     raycaster.setFromCamera(mouse2d, camera);
     const hits = raycaster.intersectObjects(interactives);
     if (hits.length > 0) {
-      const hitIdx = hits[0].object.userData.idx;
-      if (selectedTargetIdx === null || selectedTargetIdx === hitIdx) {
-        enterDetail(hitIdx);
-      }
+      noteInteraction();
+      enterDetail(hits[0].object.userData.idx);
     }
   });
 
-  // Pointer-centered zoom: zoom towards the world point under the cursor (or the y=0 plane)
+  // Pointer-centered zoom toward the world point under the cursor (or the y=0 plane).
   canvas.addEventListener('wheel', (e) => {
+    if (!active()) return;
     e.preventDefault();
     if (modeState.mode === 'animating') return;
+    noteInteraction();
 
     const rect = canvas.getBoundingClientRect();
-    const mx = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-    const my = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-    mouse2d.set(mx, my);
+    mouse2d.set(((e.clientX - rect.left) / rect.width) * 2 - 1, -((e.clientY - rect.top) / rect.height) * 2 + 1);
     raycaster.setFromCamera(mouse2d, camera);
     const hits = raycaster.intersectObjects(interactives);
-
     const point = new THREE.Vector3();
     if (hits.length > 0) {
       point.copy(hits[0].point);
@@ -631,8 +435,6 @@ export function mountPortfolioSolarSystem() {
       if (!raycaster.ray.intersectPlane(plane, point)) point.set(0, 0, 0);
     }
 
-    // scale factor: <1 zooms in (wheel up gives negative deltaY), >1 zooms out.
-    // In solar view, clamped so the camera-to-target distance stays within the slider's range.
     let scale = Math.exp(e.deltaY * 0.0012);
     if (modeState.mode === 'solar') {
       const curDist = camera.position.distanceTo(camAnim.curLook);
@@ -643,95 +445,86 @@ export function mountPortfolioSolarSystem() {
     const curLook = camAnim.curLook.clone();
     const camOffset = camera.position.clone().sub(point).multiplyScalar(scale);
     const lookOffset = curLook.clone().sub(point).multiplyScalar(scale);
-
     camera.position.copy(point.clone().add(camOffset));
     camAnim.curLook.copy(point.clone().add(lookOffset));
     camera.lookAt(camAnim.curLook);
-
-    // update spherical coords to keep other code in sync
     syncSphFromCamera();
     if (modeState.mode === 'solar') emitZoomLevel();
   }, { passive: false });
+
   canvas.addEventListener('contextmenu', (e) => e.preventDefault());
-  backButton.addEventListener('click', exitDetail);
 
-  globalEventBus.on('language-changed', (data) => {
-    currentLanguage = data.language;
-    updateUILanguage(currentLanguage);
+  window.addEventListener('keydown', (e) => {
+    if (!active() || e.key !== 'Escape') return;
+    exitDetail();
   });
 
-  globalEventBus.on('portfolio-target-picked', ({ idx }) => {
-    setSelectionTarget(idx);
+  globalEventBus.on('language-changed', ({ language }) => {
+    currentLanguage = language;
   });
-
-  globalEventBus.on('portfolio-target-cleared', () => {
-    clearSelectionTarget();
+  globalEventBus.on('portfolio-open-body', ({ idx }) => {
+    if (!active() || modeState.mode === 'animating') return;
+    noteInteraction();
+    enterDetail(idx);
   });
-
+  globalEventBus.on('portfolio-exit-detail', () => {
+    if (active()) exitDetail();
+  });
+  globalEventBus.on('portfolio-preview', ({ idx }) => {
+    previewIdx = idx;
+  });
   globalEventBus.on('zoom-set', ({ level }) => {
-    setZoomLevel(level);
+    if (active()) setZoomLevel(level);
   });
 
-  updateUILanguage(currentLanguage);
-
-  const clock = new THREE.Clock();
-  function animate() {
-    requestAnimationFrame(animate);
-    const dt = clock.getDelta();
-    const et = clock.getElapsedTime();
-
+  // ---------- per-frame ----------
+  function update(dt, et) {
     sunGroup.scale.setScalar(1 + Math.sin(et * 1.4) * 0.018);
     sunCore.rotation.y += dt * 0.07;
 
-    if (modeState.mode !== 'detail') {
-      PROJECTS.forEach((p, i) => {
-        const pivot = pivots[i];
-        const mesh = meshes[i];
-        if (pivot) pivot.rotation.y += p.orbit * dt;
-        if (mesh) mesh.rotation.y += p.spin * dt;
-      });
-    } else {
-      PROJECTS.forEach((p, i) => {
-        const pivot = pivots[i];
-        if (i !== selectedIdx && pivot) pivot.rotation.y += p.orbit * dt;
-      });
-      if (selectedBody && !detDragging) {
-        const spinRate = selectedIdx === -1 ? 0.16 : (PROJECTS[selectedIdx] ? PROJECTS[selectedIdx].spin : 0.22);
-        selectedBody.rotateY(spinRate * dt);
-      }
+    PROJECTS.forEach((p, i) => {
+      const pivot = pivots[i];
+      const mesh = meshes[i];
+      const isSelected = modeState.mode !== 'solar' && i === selectedIdx;
+      if (pivot && !isSelected) pivot.rotation.y += p.orbit * dt;
+      if (mesh && !isSelected) mesh.rotation.y += p.spin * dt;
+    });
+    if (modeState.mode === 'detail' && selectedBody && !detDragging) {
+      const spinRate = selectedIdx === -1 ? 0.16 : (PROJECTS[selectedIdx]?.spin ?? 0.22);
+      selectedBody.rotateY(spinRate * dt);
     }
 
-    tickAnim(camera, camAnim, modeState);
-    updateDragHintPosition();
-    updateSelectionArrowPosition();
-    renderer.render(scene, camera);
-  }
-  animate();
-
-  function playIntroSequence() {
-    const introFrom = new THREE.Vector3(-8, 34, 98);
-    const introTo = new THREE.Vector3(-4, 24, 82);
-    camera.position.copy(introFrom);
-    camera.lookAt(0, 0, 0);
-    camAnim.curLook.set(0, 0, 0);
-
-    fireAnim(camera, camAnim, modeState, introTo, new THREE.Vector3(0, 0, 0), 1700, () => {
-      modeState.mode = 'solar';
-      sph.theta = Math.atan2(camera.position.x, camera.position.z);
-      sph.phi = Math.acos(camera.position.y / camera.position.length());
-      sph.r = camera.position.length();
+    // While a planet is open the sun sits just off frame: dim its corona so it
+    // does not bleed a hard-edged band along the panel.
+    const open = modeState.mode !== 'solar' && selectedBody !== null;
+    const dim = !open ? 1 : (selectedIdx >= 0 ? 0 : 0.45);
+    const k = window.__stageDebugFast ? 1 : 1 - Math.exp(-dt * 8);
+    corona.forEach((sprite) => {
+      const target = sprite.userData.baseOpacity * dim;
+      sprite.material.opacity += (target - sprite.material.opacity) * k;
+      sprite.visible = sprite.material.opacity > 0.005;
     });
 
-    if (introFade) {
-      requestAnimationFrame(() => introFade.classList.add('hide'));
-      setTimeout(() => introFade.remove(), 1800);
+    tickAnim(camera, camAnim, modeState);
+    if (stage.current === 'site') {
+      updateDragHintPosition();
+      updateSelectionArrowPosition();
+    } else if (selectionArrow) {
+      selectionArrow.style.opacity = '0';
     }
   }
-  playIntroSequence();
 
-  window.addEventListener('resize', () => {
-    camera.aspect = W() / H();
-    camera.updateProjectionMatrix();
-    renderer.setSize(W(), H());
-  });
+  camera.position.copy(START_POS);
+  camera.lookAt(0, 0, 0);
+
+  return {
+    scene,
+    camera,
+    update,
+    playIntro,
+    resetView,
+    get mode() {
+      return modeState.mode;
+    },
+  };
 }

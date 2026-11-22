@@ -18,6 +18,10 @@ export function LanguageProvider({ children }) {
     globalEventBus.emit('language-changed', { language });
   }, []);
 
+  useEffect(() => {
+    document.documentElement.lang = language;
+  }, [language]);
+
   return (
     <LanguageContext.Provider value={{ language, toggleLanguage }}>
       {children}

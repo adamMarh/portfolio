@@ -1,0 +1,674 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-22T05:31:49+00:00",
+  "title": "Design System: Portfolio Solaire",
+  "extensions": {
+    "colorMeta": {
+      "gold": {
+        "role": "primary",
+        "displayName": "Beacon Gold",
+        "canonical": "#f5c842",
+        "tonalRamp": [
+          "#3a3012",
+          "#685418",
+          "#9b7a17",
+          "#e6b00f",
+          "#eac148",
+          "#e7cf88",
+          "#ece1c0",
+          "#f8f5ed"
+        ]
+      },
+      "gold-strong": {
+        "role": "primary",
+        "displayName": "Lamp Gold",
+        "canonical": "#ffd968",
+        "tonalRamp": [
+          "#3c3110",
+          "#6c5613",
+          "#a27e10",
+          "#f2b603",
+          "#f3c63f",
+          "#ecd283",
+          "#eee2be",
+          "#f8f5ec"
+        ]
+      },
+      "gold-soft": {
+        "role": "primary",
+        "displayName": "Gold Wash",
+        "tonalRamp": [
+          "#3a3012",
+          "#685418",
+          "#9b7a17",
+          "#e6b00f",
+          "#eac148",
+          "#e7cf88",
+          "#ece1c0",
+          "#f8f5ed"
+        ]
+      },
+      "gold-line": {
+        "role": "primary",
+        "displayName": "Gold Rule",
+        "tonalRamp": [
+          "#3a3012",
+          "#685418",
+          "#9b7a17",
+          "#e6b00f",
+          "#eac148",
+          "#e7cf88",
+          "#ece1c0",
+          "#f8f5ed"
+        ]
+      },
+      "signal-cyan": {
+        "role": "secondary",
+        "displayName": "Signal Cyan",
+        "canonical": "#65dcff",
+        "tonalRamp": [
+          "#10323c",
+          "#13586c",
+          "#1081a2",
+          "#03bcf2",
+          "#3fcaf3",
+          "#83d4ec",
+          "#bee3ee",
+          "#ecf5f8"
+        ]
+      },
+      "neon-pink": {
+        "role": "tertiary",
+        "displayName": "Neon Pink",
+        "canonical": "#ff3d9a",
+        "tonalRamp": [
+          "#3c1410",
+          "#6c1c13",
+          "#a21e10",
+          "#f21a03",
+          "#f3513f",
+          "#ec8d83",
+          "#eec3be",
+          "#f8eeec"
+        ]
+      },
+      "neon-ice": {
+        "role": "tertiary",
+        "displayName": "Neon Ice",
+        "canonical": "#3ef0ff",
+        "tonalRamp": [
+          "#10393c",
+          "#13656c",
+          "#1097a2",
+          "#03dff2",
+          "#3fe5f3",
+          "#83e4ec",
+          "#beebee",
+          "#ecf7f8"
+        ]
+      },
+      "crt-plastic": {
+        "role": "tertiary",
+        "displayName": "Yellowed Plastic",
+        "canonical": "#d8cba6",
+        "tonalRamp": [
+          "#2f2a1e",
+          "#51482e",
+          "#76673d",
+          "#a9914c",
+          "#bcaa76",
+          "#ccc1a3",
+          "#e0dbcd",
+          "#f5f3f0"
+        ]
+      },
+      "plaster": {
+        "role": "tertiary",
+        "displayName": "Night Plaster",
+        "canonical": "#2a3533",
+        "tonalRamp": [
+          "#242928",
+          "#3b4543",
+          "#51625f",
+          "#6d8883",
+          "#8fa3a0",
+          "#b2bebb",
+          "#d3d9d8",
+          "#f2f3f3"
+        ]
+      },
+      "walnut": {
+        "role": "tertiary",
+        "displayName": "Worn Walnut",
+        "canonical": "#6a4329",
+        "tonalRamp": [
+          "#30241c",
+          "#533c2c",
+          "#7a5339",
+          "#af7046",
+          "#c19171",
+          "#cfb3a0",
+          "#e1d4cc",
+          "#f5f2f0"
+        ]
+      },
+      "room-black": {
+        "role": "tertiary",
+        "displayName": "Room Black",
+        "canonical": "#020304",
+        "tonalRamp": [
+          "#1f262e",
+          "#31404f",
+          "#415972",
+          "#537aa2",
+          "#7b99b7",
+          "#a6b8c9",
+          "#ced6de",
+          "#f0f2f4"
+        ]
+      },
+      "led-green": {
+        "role": "tertiary",
+        "displayName": "LED Green",
+        "canonical": "#46ff7a",
+        "tonalRamp": [
+          "#103c1d",
+          "#136c2c",
+          "#10a239",
+          "#03f246",
+          "#3ff372",
+          "#83eca1",
+          "#beeecc",
+          "#ecf8f0"
+        ]
+      },
+      "led-amber": {
+        "role": "tertiary",
+        "displayName": "HDD Amber",
+        "canonical": "#ffa529",
+        "tonalRamp": [
+          "#3c2a10",
+          "#6c4713",
+          "#a26510",
+          "#f28d03",
+          "#f3a73f",
+          "#ecc083",
+          "#eedabe",
+          "#f8f3ec"
+        ]
+      },
+      "navy-950": {
+        "role": "neutral",
+        "displayName": "Abyss Navy",
+        "canonical": "#02050f",
+        "tonalRamp": [
+          "#151d37",
+          "#1e2d62",
+          "#213b91",
+          "#1f49d6",
+          "#5474de",
+          "#8fa2e0",
+          "#c4cce9",
+          "#eef0f7"
+        ]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Panel Navy (translucent)",
+        "tonalRamp": [
+          "#171e36",
+          "#20305f",
+          "#263f8d",
+          "#2650cf",
+          "#5a79d8",
+          "#93a5dd",
+          "#c5cee7",
+          "#eef0f6"
+        ]
+      },
+      "surface-solid": {
+        "role": "neutral",
+        "displayName": "Panel Navy",
+        "canonical": "#070e24",
+        "tonalRamp": [
+          "#171f35",
+          "#22305e",
+          "#28408b",
+          "#2a51cb",
+          "#5c7ad6",
+          "#94a5db",
+          "#c6cee6",
+          "#eef0f6"
+        ]
+      },
+      "panel-scrim": {
+        "role": "neutral",
+        "displayName": "Panel Scrim",
+        "tonalRamp": [
+          "#171e36",
+          "#212f5f",
+          "#273d8c",
+          "#284ccd",
+          "#5b76d7",
+          "#93a3dc",
+          "#c5cde7",
+          "#eef0f6"
+        ]
+      },
+      "panel-scrim-mid": {
+        "role": "neutral",
+        "displayName": "Panel Scrim 94%",
+        "tonalRamp": [
+          "#171e36",
+          "#212f5f",
+          "#273d8c",
+          "#284ccd",
+          "#5b76d7",
+          "#93a3dc",
+          "#c5cde7",
+          "#eef0f6"
+        ]
+      },
+      "panel-scrim-edge": {
+        "role": "neutral",
+        "displayName": "Panel Scrim 86%",
+        "tonalRamp": [
+          "#171e36",
+          "#212f5f",
+          "#273d8c",
+          "#284ccd",
+          "#5b76d7",
+          "#93a3dc",
+          "#c5cde7",
+          "#eef0f6"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Warm Paper Ink",
+        "canonical": "#f4f1e8",
+        "tonalRamp": [
+          "#2e2a1e",
+          "#504830",
+          "#73663f",
+          "#a58f50",
+          "#b9a979",
+          "#cac1a5",
+          "#dfdace",
+          "#f4f3f0"
+        ]
+      },
+      "ink-2": {
+        "role": "neutral",
+        "displayName": "Warm Paper Ink 76%",
+        "tonalRamp": [
+          "#2e2a1e",
+          "#504830",
+          "#73663f",
+          "#a58f50",
+          "#b9a979",
+          "#cac1a5",
+          "#dfdace",
+          "#f4f3f0"
+        ]
+      },
+      "ink-3": {
+        "role": "neutral",
+        "displayName": "Warm Paper Ink 60%",
+        "tonalRamp": [
+          "#2e2a1e",
+          "#504830",
+          "#73663f",
+          "#a58f50",
+          "#b9a979",
+          "#cac1a5",
+          "#dfdace",
+          "#f4f3f0"
+        ]
+      },
+      "hairline": {
+        "role": "neutral",
+        "displayName": "Hairline",
+        "tonalRamp": [
+          "#2e2a1e",
+          "#504830",
+          "#73663f",
+          "#a58f50",
+          "#b9a979",
+          "#cac1a5",
+          "#dfdace",
+          "#f4f3f0"
+        ]
+      },
+      "desktop-navy": {
+        "role": "neutral",
+        "displayName": "CRT Desktop Navy",
+        "canonical": "#07122a",
+        "tonalRamp": [
+          "#162036",
+          "#203460",
+          "#25468e",
+          "#255bd0",
+          "#5981d9",
+          "#92aadd",
+          "#c5d0e7",
+          "#eef1f6"
+        ]
+      },
+      "desktop-paper": {
+        "role": "neutral",
+        "displayName": "CRT Desktop Paper",
+        "canonical": "#e9e4d4",
+        "tonalRamp": [
+          "#2d2a1f",
+          "#4e4731",
+          "#716642",
+          "#a18f54",
+          "#b6a87c",
+          "#c9c0a7",
+          "#dedace",
+          "#f4f3f0"
+        ]
+      },
+      "desktop-ink": {
+        "role": "neutral",
+        "displayName": "CRT Pixel Ink",
+        "canonical": "#0a0f1d",
+        "tonalRamp": [
+          "#1b2131",
+          "#2a3555",
+          "#36487d",
+          "#405fb5",
+          "#6d84c5",
+          "#9eabd1",
+          "#cad1e2",
+          "#eff1f5"
+        ]
+      },
+      "phosphor-green": {
+        "role": "neutral",
+        "displayName": "Phosphor Green",
+        "canonical": "#9fe7a8",
+        "tonalRamp": [
+          "#19341c",
+          "#255b2c",
+          "#2d8538",
+          "#33c245",
+          "#63cf71",
+          "#98d7a0",
+          "#c8e5cb",
+          "#eff6f0"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Project and profile titles in the detail panel, uppercase."
+      },
+      "wordmark": {
+        "displayName": "Wordmark",
+        "purpose": "The name, top bar and room corner."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Project subtitle under the display title."
+      },
+      "title-lg": {
+        "displayName": "Title Large",
+        "purpose": "Timeline roles, 16px."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Index names, button text."
+      },
+      "small": {
+        "displayName": "Small",
+        "purpose": "Back link, skip link, power label, pager titles, timeline company, 14px."
+      },
+      "body-compact": {
+        "displayName": "Body Compact",
+        "purpose": "Panel descriptions under 820px, 16px."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Panel descriptions, max 62ch."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Names a container (index, timeline), tooltips, language options. Never a kicker."
+      },
+      "label-sm": {
+        "displayName": "Label Small",
+        "purpose": "Planet-name pointer tooltip, Orbitron 600 caps, 10px."
+      },
+      "meta": {
+        "displayName": "Meta",
+        "purpose": "Roles, hints, tags, timeline dates, 13px."
+      },
+      "meta-sm": {
+        "displayName": "Meta Small",
+        "purpose": "Index planet/year, pager labels, drag hint, mobile hint, index count, 12px."
+      },
+      "neon-sign": {
+        "displayName": "Neon Sign (room prop)",
+        "purpose": "Tilt Neon, HELLO WORLD sign; WebGL canvas texture only, never DOM UI."
+      },
+      "marker": {
+        "displayName": "Marker (room prop)",
+        "purpose": "Permanent Marker, handwritten floppy labels; WebGL canvas texture only, never DOM UI."
+      },
+      "pixel": {
+        "displayName": "Pixel",
+        "purpose": "CRT desktop and the Enter key cap."
+      }
+    },
+    "shadows": [
+      {
+        "name": "panel-seat",
+        "value": "0 24px 60px -30px rgba(0,0,0,0.9)",
+        "purpose": "Seats the index panel over the bright scene."
+      },
+      {
+        "name": "drawer-edge",
+        "value": "30px 0 80px -40px rgba(0,0,0,0.9)",
+        "purpose": "Detail panel edge over the scene."
+      },
+      {
+        "name": "control-seat",
+        "value": "0 18px 40px -18px rgba(0,0,0,0.9)",
+        "purpose": "Room start control and mobile index toggle (0 16px 40px -16px)."
+      },
+      {
+        "name": "gold-lift",
+        "value": "0 8px 24px -10px rgba(245,200,66,0.55)",
+        "purpose": "Primary button only; hover 0 12px 28px -10px rgba(245,200,66,0.7)."
+      },
+      {
+        "name": "neon-halo-text",
+        "value": "0 1px 2px rgba(0,0,0,0.9), 0 0 18px rgba(0,0,0,0.85)",
+        "purpose": "text-shadow for room overlay text in front of lit neons."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-out",
+        "value": "cubic-bezier(0.23, 1, 0.32, 1)",
+        "purpose": "Interface state changes, presses, reveals (140-300ms)."
+      },
+      {
+        "name": "ease-in-out",
+        "value": "cubic-bezier(0.77, 0, 0.175, 1)",
+        "purpose": "Camera dive (1800ms) and pull-back (1500ms)."
+      },
+      {
+        "name": "ease-drawer",
+        "value": "cubic-bezier(0.32, 0.72, 0, 1)",
+        "purpose": "Detail panel (in 560ms, out 420ms) and mobile index sheet."
+      },
+      {
+        "name": "ease-reveal",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "CRT strength relaxing to zero over the site (1100ms), screen power-on (420ms)."
+      },
+      {
+        "name": "press",
+        "value": "scale(0.96-0.98), 160ms ease-out",
+        "purpose": "Every tappable control on :active."
+      },
+      {
+        "name": "site-stagger",
+        "value": "topbar 380ms, index 460ms, hint 640ms, zoom 700ms delays; 520ms opacity, 620ms transform",
+        "purpose": "Site chrome arrival after the dive."
+      },
+      {
+        "name": "crt-collapse",
+        "value": "700ms",
+        "purpose": "Power off: picture collapses to a line and a dot before pull-back."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "opacity-only, 300ms",
+        "purpose": "All transitions under prefers-reduced-motion; neon flicker stops."
+      }
+    ],
+    "gradients": [
+      {
+        "name": "panel-scrim",
+        "value": "linear-gradient(90deg, rgba(4, 8, 22, 0.98) 0%, rgba(4, 8, 22, 0.94) 80%, rgba(4, 8, 22, 0.86) 100%)",
+        "purpose": "Desktop detail drawer background; navy-950 family."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "wide",
+        "value": "1100px"
+      },
+      {
+        "name": "compact",
+        "value": "820px"
+      },
+      {
+        "name": "narrow",
+        "value": "480px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Gold pill for the one primary action in a panel (repository, LinkedIn).",
+      "html": "<a class=\"ds-btn-primary\" href=\"#\">View repository <svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M7 17 17 7\"/><path d=\"M8 7h9v9\"/></svg></a>",
+      "css": ".ds-btn-primary{display:inline-flex;align-items:center;gap:10px;min-height:48px;padding:0 22px;border-radius:999px;background:#f5c842;color:#02050f;font-family:'Exo 2',system-ui,sans-serif;font-weight:700;font-size:15px;letter-spacing:.02em;text-decoration:none;box-shadow:0 8px 24px -10px rgba(245,200,66,.55);transition:background-color 160ms ease,transform 160ms cubic-bezier(.23,1,.32,1),box-shadow 200ms ease}.ds-btn-primary svg{transition:transform 200ms cubic-bezier(.23,1,.32,1)}.ds-btn-primary:hover{background:#ffd968;box-shadow:0 12px 28px -10px rgba(245,200,66,.7)}.ds-btn-primary:hover svg{transform:translate(2px,-2px)}.ds-btn-primary:active{transform:scale(.97)}.ds-btn-primary:focus-visible{outline:2px solid #f5c842;outline-offset:3px}"
+    },
+    {
+      "name": "Power Button",
+      "kind": "button",
+      "refersTo": "button-icon",
+      "description": "Translucent navy pill with gold hairline; returns to the room.",
+      "html": "<button class=\"ds-btn-power\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M12 3v8\"/><path d=\"M6.4 6.9a8 8 0 1 0 11.2 0\"/></svg><span>Power off</span></button>",
+      "css": ".ds-btn-power{display:inline-flex;align-items:center;gap:8px;height:44px;padding:0 18px 0 14px;border:1px solid rgba(245,200,66,.24);border-radius:999px;background:rgba(2,5,15,.6);color:#f4f1e8;font-family:'Exo 2',system-ui,sans-serif;font-size:14px;font-weight:600;letter-spacing:.04em;cursor:pointer;transition:border-color 160ms ease,color 160ms ease,transform 160ms cubic-bezier(.23,1,.32,1)}.ds-btn-power svg{transition:transform 200ms cubic-bezier(.23,1,.32,1)}.ds-btn-power:hover{border-color:#f5c842;color:#f5c842}.ds-btn-power:hover svg{transform:rotate(-12deg)}.ds-btn-power:active{transform:scale(.96)}.ds-btn-power:focus-visible{outline:2px solid #f5c842;outline-offset:3px}"
+    },
+    {
+      "name": "Back Link",
+      "kind": "button",
+      "refersTo": "button-icon",
+      "description": "Borderless gold back action at the top of the detail panel.",
+      "html": "<button class=\"ds-back\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m15 18-6-6 6-6\"/></svg>Back to system</button>",
+      "css": ".ds-back{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 10px 0 4px;border:none;border-radius:999px;background:none;color:#f5c842;font-family:'Exo 2',system-ui,sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:background-color 160ms ease,transform 160ms cubic-bezier(.23,1,.32,1)}.ds-back svg{transition:transform 200ms cubic-bezier(.23,1,.32,1)}.ds-back:hover{background:rgba(245,200,66,.12)}.ds-back:hover svg{transform:translateX(-3px)}.ds-back:active{transform:scale(.97)}.ds-back:focus-visible{outline:2px solid #f5c842;outline-offset:3px}"
+    },
+    {
+      "name": "Language Toggle",
+      "kind": "nav",
+      "refersTo": "lang-toggle-active",
+      "description": "FR/EN pill track; the pressed option fills gold.",
+      "html": "<div class=\"ds-lang\"><button class=\"ds-lang__opt\" aria-pressed=\"true\">FR</button><button class=\"ds-lang__opt\" aria-pressed=\"false\">EN</button></div>",
+      "css": ".ds-lang{display:inline-flex;padding:3px;border:1px solid rgba(245,200,66,.24);border-radius:999px;background:rgba(2,5,15,.6)}.ds-lang__opt{min-width:44px;height:36px;padding:0 12px;border:none;border-radius:999px;background:none;font-family:Orbitron,'Exo 2',sans-serif;font-size:11px;font-weight:600;letter-spacing:.18em;color:rgba(244,241,232,.6);cursor:pointer;transition:color 160ms ease,background-color 160ms ease,transform 160ms cubic-bezier(.23,1,.32,1)}.ds-lang__opt[aria-pressed=true]{background:#f5c842;color:#02050f}.ds-lang__opt[aria-pressed=false]:hover{color:#f4f1e8}.ds-lang__opt:active{transform:scale(.96)}.ds-lang__opt:focus-visible{outline:2px solid #f5c842;outline-offset:3px}"
+    },
+    {
+      "name": "Tag",
+      "kind": "chip",
+      "refersTo": "tag",
+      "description": "Hairline pill listing a stack item; not interactive.",
+      "html": "<ul class=\"ds-tags\"><li>React</li><li>TypeScript</li><li>Supabase</li></ul>",
+      "css": ".ds-tags{display:flex;flex-wrap:wrap;gap:8px;list-style:none;margin:0;padding:0}.ds-tags li{padding:6px 12px;border-radius:999px;border:1px solid rgba(244,241,232,.1);font-family:'Exo 2',system-ui,sans-serif;font-size:13px;color:rgba(244,241,232,.76)}"
+    },
+    {
+      "name": "Project Index",
+      "kind": "custom",
+      "refersTo": "index-panel",
+      "description": "Solid navy list of every body; the current row carries a gold wash.",
+      "html": "<nav class=\"ds-index\"><h2 class=\"ds-index__title\">Profile and projects</h2><button class=\"ds-index__row\" aria-current=\"true\"><span class=\"ds-index__thumb\" style=\"background:radial-gradient(circle at 35% 35%,#fff2b0,#f2b13a 55%,#7a4a10)\"></span><span><span class=\"ds-index__name\">Profile</span><span class=\"ds-index__meta\">Sun</span></span></button><button class=\"ds-index__row\"><span class=\"ds-index__thumb\" style=\"background:radial-gradient(circle at 35% 35%,#f3c49a,#c9773a 55%,#4a2310)\"></span><span><span class=\"ds-index__name\">FindSecure</span><span class=\"ds-index__meta\">Venus · 2026</span></span></button></nav>",
+      "css": ".ds-index{width:304px;padding:18px 10px 10px;border:1px solid rgba(245,200,66,.24);border-radius:14px;background:#070e24;box-shadow:0 24px 60px -30px rgba(0,0,0,.9);display:grid;gap:2px}.ds-index__title{margin:0;padding:0 10px 12px;font-family:Orbitron,'Exo 2',sans-serif;font-size:11px;font-weight:600;letter-spacing:.26em;text-transform:uppercase;color:#f5c842}.ds-index__row{display:grid;grid-template-columns:40px 1fr;align-items:center;gap:12px;min-height:56px;padding:8px 10px;border-radius:10px;border:1px solid transparent;background:none;text-align:left;cursor:pointer;font-family:'Exo 2',system-ui,sans-serif;transition:background-color 160ms ease,border-color 160ms ease}.ds-index__row>span:last-child{display:grid;gap:3px}.ds-index__thumb{width:40px;height:40px;border-radius:50%;transition:transform 240ms cubic-bezier(.23,1,.32,1)}.ds-index__name{font-size:15px;font-weight:600;line-height:1.25;color:#f4f1e8;transition:color 160ms ease}.ds-index__meta{font-size:12px;letter-spacing:.04em;color:rgba(244,241,232,.6)}.ds-index__row[aria-current=true]{border-color:rgba(245,200,66,.24);background:rgba(245,200,66,.12)}.ds-index__row:hover{background:rgba(245,200,66,.07)}.ds-index__row:hover .ds-index__thumb{transform:scale(1.08)}.ds-index__row:hover .ds-index__name{color:#f5c842}.ds-index__row:focus-visible{outline:2px solid #f5c842;outline-offset:-2px}"
+    },
+    {
+      "name": "Room Start Control",
+      "kind": "button",
+      "refersTo": "room-start",
+      "description": "DOM mirror of the CRT click: dark pill with a gold VT323 key cap.",
+      "html": "<button class=\"ds-start\">Enter the portfolio<span class=\"ds-start__key\">Enter <svg width=\"15\" height=\"15\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.25\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20 5v6a4 4 0 0 1-4 4H5\"/><path d=\"m9 11-4 4 4 4\"/></svg></span></button>",
+      "css": ".ds-start{display:inline-flex;align-items:center;gap:14px;min-height:52px;padding:0 10px 0 24px;border-radius:999px;border:1px solid rgba(245,200,66,.24);background:rgba(3,6,16,.78);color:#f4f1e8;font-family:'Exo 2',system-ui,sans-serif;font-size:15px;font-weight:600;letter-spacing:.02em;cursor:pointer;box-shadow:0 18px 40px -18px rgba(0,0,0,.9);transition:border-color 200ms ease,transform 160ms cubic-bezier(.23,1,.32,1),background-color 200ms ease}.ds-start__key{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 12px;border-radius:999px;background:#f5c842;color:#02050f;font-family:VT323,ui-monospace,monospace;font-size:20px;line-height:1}.ds-start:hover{border-color:#f5c842;background:rgba(8,12,26,.9)}.ds-start:active{transform:scale(.97)}.ds-start:focus-visible{outline:2px solid #f5c842;outline-offset:3px}"
+    },
+    {
+      "name": "Pager Link",
+      "kind": "card",
+      "refersTo": "pager-link",
+      "description": "Previous/next project at the foot of the detail panel.",
+      "html": "<button class=\"ds-pager\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m15 18-6-6 6-6\"/></svg><span><span class=\"ds-pager__label\">Previous</span><span class=\"ds-pager__title\">NLP Classification Pipeline</span></span></button>",
+      "css": ".ds-pager{display:flex;align-items:center;gap:10px;min-height:64px;width:260px;padding:12px 14px;border-radius:10px;border:1px solid rgba(244,241,232,.1);background:none;text-align:left;cursor:pointer;font-family:'Exo 2',system-ui,sans-serif;transition:border-color 160ms ease,background-color 160ms ease,transform 160ms cubic-bezier(.23,1,.32,1)}.ds-pager svg{color:#f5c842;flex-shrink:0}.ds-pager>span{display:grid;gap:2px;min-width:0}.ds-pager__label{font-size:12px;color:rgba(244,241,232,.6);letter-spacing:.04em}.ds-pager__title{font-size:14px;font-weight:600;color:#f4f1e8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ds-pager:hover{border-color:rgba(245,200,66,.24);background:rgba(245,200,66,.12)}.ds-pager:active{transform:scale(.98)}.ds-pager:focus-visible{outline:2px solid #f5c842;outline-offset:3px}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Machine Already Running",
+    "overview": "Two worlds, one light source each. The first is a small room at night, rendered in WebGL: blue-green plaster, a walnut desk, a yellowed beige CRT and tower, a pink HELLO WORLD neon, an ice-cyan Saturn neon, a rain window full of sodium bokeh, and a black portable stereo whose amber dot-matrix display scrolls the artist and song (play, stop, next). Nothing in it is lit except by the screen, the neons and the window, all pushed through bloom. The second world lives on that screen: the established navy-and-gold portfolio, a Three.js solar system with Orbitron display type and Exo 2 text. The camera dive through the curved glass is the hinge between them, and the CRT's scanlines and barrel curvature relax to zero over the live site so the two read as one machine.\n\nThe site layer is quiet and dark so the 3D carries the impression. Controls are pill-shaped, hairline-bordered in translucent gold, set on near-black navy, with gold reserved for the one thing that is active, current or primary. Reading surfaces (the detail panel, the project index) are solid navy, never glass. Type is uppercase Orbitron only for the name, project titles and short container labels; everything a visitor reads is Exo 2 in warm off-white.\n\nMotion has two speeds. The camera moves slowly and decisively (1.5 to 1.8 s, strong ease-in-out); interface responds fast (140 to 300 ms, strong ease-out), with a 0.96 to 0.98 press scale on every tappable control. Only one neon tube stutters; the other hums.",
+    "keyCharacteristics": [
+      "Room world lit only by emissive sources and bloom; no fill light that reveals the room evenly.",
+      "Site world: deep navy ground, single gold accent, warm off-white ink at three opacities.",
+      "Pills for every control, 10px rows, 14px panels; no sharp-cornered buttons.",
+      "Depth by tone and diffuse dark shadow, never by hard offset shadow.",
+      "One stroke family for every interface icon: drawn SVG, 24px grid, 1.75 stroke, round caps.",
+      "Two motion speeds: slow camera, fast interface."
+    ],
+    "rules": [
+      {
+        "name": "The One Gold Rule",
+        "body": "On the site, gold marks what is primary, active or current, plus short container labels. A screen with two gold-filled elements competing for the same action is wrong.",
+        "section": "colors"
+      },
+      {
+        "name": "The Emissive-Only Rule",
+        "body": "The room is lit by the screen, the two neons and the window. Any new object in the room takes its light from those sources; never add a neutral key light to show it off.",
+        "section": "colors"
+      },
+      {
+        "name": "The Nameplate Rule",
+        "body": "Uppercase Orbitron is for names (the person, a project, a container). Sentences are always Exo 2 in sentence case.",
+        "section": "typography"
+      },
+      {
+        "name": "The Dark Seat Rule",
+        "body": "Shadows are black, blurred and negative-spread; the only coloured shadow is gold under the primary button.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** keep gold for the primary, active or current element and for container labels; everything else is ink at 1, 0.76 or 0.6.",
+      "**Do** give every control a pill shape, a 44px hit area, a 160ms ease-out (`cubic-bezier(0.23, 1, 0.32, 1)`) state change and a 0.96 to 0.98 press scale.",
+      "**Do** move the camera on `cubic-bezier(0.77, 0, 0.175, 1)` over 1.5 to 1.8 s, and slide drawers on `cubic-bezier(0.32, 0.72, 0, 1)`.",
+      "**Do** draw new icons as inline SVG in the shared stroke family (24px grid, 1.75 stroke, round caps).",
+      "**Do** light anything added to the room from the screen, neons or window, and let bloom carry the glow.",
+      "**Do** put reading content on solid navy (`surface-solid`) with Exo 2 body at 17px / 1.65 and 62ch.",
+      "**Do** collapse every transition to opacity-only (300ms) and stop neon flicker under `prefers-reduced-motion`."
+    ],
+    "donts": [
+      "**Don't** put a small tracked uppercase label above a headline as a kicker; Orbitron labels name containers only.",
+      "**Don't** use frosted-glass panels for reading surfaces; panels are solid or near-opaque navy.",
+      "**Don't** add hard offset or coloured shadows beyond the gold primary lift.",
+      "**Don't** use emoji or font glyphs as interface icons.",
+      "**Don't** add a neutral key or fill light to the room that flattens it.",
+      "**Don't** set sentences in Orbitron or in uppercase."
+    ]
+  }
+}
