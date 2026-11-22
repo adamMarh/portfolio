@@ -117,7 +117,8 @@ export const translations = {
       fade: 'Loading...',
     },
     room: {
-      start: 'Enter the portfolio',
+      powerOn: 'Turn on the computer',
+      openPortfolio: 'Open the portfolio',
       hint: 'Click the computer to turn it on, or press Enter',
       hintTouch: 'Tap the computer to turn it on',
       hintBooting: 'Starting up…',
@@ -288,7 +289,8 @@ export const translations = {
       fade: 'Chargement...',
     },
     room: {
-      start: 'Entrer dans le portfolio',
+      powerOn: 'Allumer l’ordinateur',
+      openPortfolio: 'Ouvrir le portfolio',
       hint: 'Cliquez sur l’ordinateur pour l’allumer, ou appuyez sur Entrée',
       hintTouch: 'Touchez l’ordinateur pour l’allumer',
       hintBooting: 'Démarrage…',

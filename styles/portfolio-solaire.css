@@ -342,24 +342,22 @@ body[data-stage='room'] .room-ui {
 }
 
 
-/* A floor of shadow under the start control so it never sits on busy keycaps. */
+/* A floor of shadow under the hint so it never sits on busy keycaps. */
 .room-ui::after {
   content: '';
   position: absolute;
   left: 0;
   right: 0;
   bottom: 0;
-  height: min(220px, 45vh);
+  height: min(150px, 32vh);
   background: linear-gradient(0deg, rgba(1, 2, 6, 0.92) 0%, rgba(1, 2, 6, 0.7) 45%, rgba(1, 2, 6, 0) 100%);
   pointer-events: none;
   z-index: -1;
 }
-/* Up close at the computer, the screen is the interface: the start button and
-   the shadow floor step aside, only the hint stays. */
-.room-ui::after,
-.room-start { transition: opacity 240ms ease, visibility 0s linear 240ms; }
+/* Up close at the computer, the screen is the interface: the shadow floor
+   steps aside and the hint gets its own backing. */
+.room-ui::after { transition: opacity 240ms ease; }
 .room-ui.is-closeup::after { opacity: 0; }
-.room-ui.is-closeup .room-start { position: absolute; bottom: 100%; opacity: 0; visibility: hidden; pointer-events: none; }
 .room-ui.is-closeup .room-start__hint {
   padding: 6px 14px;
   border-radius: 999px;
@@ -376,7 +374,18 @@ body[data-stage='room'] .room-ui {
   align-items: center;
   gap: 12px;
 }
+/* Keyboard and screen readers only: the way through the room one step at a
+   time (turn the computer on, then open the portfolio). Out of sight until it
+   has keyboard focus, so pointer visitors go through the computer itself. */
 .room-start {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 12px);
+  white-space: nowrap;
+  clip-path: inset(50%);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-50%);
   display: inline-flex;
   align-items: center;
   gap: 14px;
@@ -392,6 +401,8 @@ body[data-stage='room'] .room-ui {
   box-shadow: 0 18px 40px -18px rgba(0, 0, 0, 0.9);
   transition: border-color 200ms ease, transform 160ms var(--ease-out), background-color 200ms ease;
 }
+.room-start:focus-visible { clip-path: none; opacity: 1; pointer-events: auto; }
+.room-start[aria-disabled='true'] { color: var(--ink-3); }
 .room-start__key {
   display: inline-flex;
   align-items: center;
@@ -406,14 +417,12 @@ body[data-stage='room'] .room-ui {
   line-height: 1;
 }
 .room-start__key .icon { width: 15px; height: 15px; stroke-width: 2.25; }
-.room-start:active { transform: scale(0.97); }
-@media (hover: hover) and (pointer: fine) {
-  .room-start:hover { border-color: var(--gold); background: rgba(8, 12, 26, 0.9); }
-}
-.room-start.is-nudged { animation: room-nudge 700ms var(--ease-out); }
-@keyframes room-nudge {
-  0% { box-shadow: 0 0 0 0 rgba(245, 200, 66, 0.55), 0 18px 40px -18px rgba(0, 0, 0, 0.9); }
-  100% { box-shadow: 0 0 0 18px rgba(245, 200, 66, 0), 0 18px 40px -18px rgba(0, 0, 0, 0.9); }
+.room-start:active { transform: translateX(-50%) scale(0.97); }
+/* A click that misses the computer: the hint lights up gold for a moment. */
+.room-start__hint.is-nudged { animation: hint-nudge 900ms var(--ease-out); }
+@keyframes hint-nudge {
+  0%, 30% { color: var(--gold); text-shadow: 0 0 14px rgba(245, 200, 66, 0.6), 0 1px 8px rgba(0, 0, 0, 0.9); }
+  100% { color: var(--ink-3); }
 }
 .room-start__hint {
   pointer-events: none;
@@ -1117,10 +1126,7 @@ body.is-detail-view .site-ui > .zoom-control { opacity: 0; visibility: hidden; t
   .panel__title-detail { font-size: 17px; margin-top: 6px; }
   .panel__desc { margin-top: 18px; font-size: 15px; line-height: 1.6; }
   .room-id__role { display: none; }
-  /* Centred, the start button would sit on the monitor (the thing to tap);
-     the corner under the poster and tower is free. */
-  .room-start-wrap { gap: 8px; left: var(--edge-l); transform: none; align-items: flex-start; }
-  .room-start { min-height: 46px; }
+  .room-start-wrap { gap: 8px; }
 }
 
 /* Sheet (SHEET_QUERY): narrow portrait screens. The index spans the width and
@@ -1166,8 +1172,7 @@ body.is-detail-view .site-ui > .zoom-control { opacity: 0; visibility: hidden; t
   }
   .panel__scroll { padding: 24px max(20px, var(--safe-r)) calc(24px + var(--safe-b)) max(20px, var(--safe-l)); }
 
-  .room-start-wrap { width: calc(100vw - var(--edge-l) - var(--edge-r)); }
-  .room-start { width: 100%; justify-content: space-between; }
+  .room-start-wrap { width: calc(100vw - var(--edge-l) - var(--edge-r)); text-align: center; }
 }
 
 @media (max-width: 480px) {

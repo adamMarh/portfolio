@@ -18,8 +18,17 @@ function hintKey({ computer, mode }, coarse) {
   return `room.hintDesktop${touch}`;
 }
 
+// What the keyboard button does next: the same step a pointer would take.
+function stepKey({ computer, mode }) {
+  if (computer === 'off' || mode === 'seat') return 'room.powerOn';
+  if (computer === 'boot' || computer === 'opening' || computer === 'program') return 'room.hintBooting';
+  return 'room.openPortfolio';
+}
+
 // The few controls that sit over the dark room: who this is, the language,
-// and a real button mirroring "click the computer".
+// and the hint. Visitors reach the portfolio through the computer itself; for
+// keyboard and screen-reader users a button (shown only when focused) walks
+// the same path one step at a time, with no shortcut past it.
 export default function RoomOverlay() {
   const { language } = useLanguage();
   const t = (key) => getTranslation(language, key);
@@ -35,7 +44,7 @@ export default function RoomOverlay() {
   // get a real, finger-sized button for it.
   const openApp = desk.mode === 'closeup' && (desk.computer === 'paint' || desk.computer === 'encyclopedia') ? desk.computer : null;
 
-  // Coming back from the site, give keyboard focus back to the start button.
+  // Coming back from the site, give keyboard focus back to the step button.
   const previous = useRef(stage);
   useEffect(() => {
     if (stage === 'room' && previous.current === 'leaving') startRef.current?.focus({ preventScroll: true });
@@ -57,19 +66,17 @@ export default function RoomOverlay() {
 
       <div className="room-start-wrap">
         <button
-          key={nudge}
           ref={startRef}
           type="button"
-          className={`room-start ${nudge ? 'is-nudged' : ''}`}
-          onClick={() => requestStage('stage-start')}
+          className="room-start"
+          aria-disabled={stepKey(desk) === 'room.hintBooting'}
+          onClick={() => requestStage('room-advance')}
         >
-          <span className="room-start__label">{t('room.start')}</span>
-          {!coarse && (
-            <kbd className="room-start__key">
-              Enter
-              <EnterKeyIcon />
-            </kbd>
-          )}
+          <span className="room-start__label">{t(stepKey(desk))}</span>
+          <kbd className="room-start__key">
+            Enter
+            <EnterKeyIcon />
+          </kbd>
         </button>
         {coarse && openApp && (
           <button type="button" className="room-close-app" onClick={() => globalEventBus.emit('room-close-app')}>
@@ -77,7 +84,7 @@ export default function RoomOverlay() {
             {t('room.closeApp').replace('{app}', t(`room.screen.${openApp}`))}
           </button>
         )}
-        <p className="room-start__hint" aria-live="polite">{t(hintKey(desk, coarse))}</p>
+        <p key={nudge} className={`room-start__hint ${nudge ? 'is-nudged' : ''}`} aria-live="polite">{t(hintKey(desk, coarse))}</p>
       </div>
     </div>
   );

@@ -272,20 +272,19 @@ export async function mountStage() {
     lean('closeup');
   }
 
-  // "Enter the portfolio" (button or Enter key): the fast path through the
-  // same machine: instant boot, the program opens quickly, then the dive.
-  function quickEnter() {
+  // The keyboard and screen-reader way through the room (Enter key or the
+  // overlay's focus-only button): the same journey as a pointer, one step per
+  // press. Turn the computer on and lean in; once its desktop is up, open the
+  // portfolio the way its icon does. There is no shortcut past the computer.
+  function advance() {
     if (stage.current !== 'room' || transition?.kind === 'dive') return;
-    if (prefersReducedMotion()) {
-      enterDirect();
+    if (desktop.state === 'off' || deskMode === 'seat') {
+      engageComputer();
       return;
     }
-    if (desktop.state === 'off') {
-      playSfx('boot');
-      desktop.boot({ instant: true });
-      powerTo(1, 250);
-    }
-    desktop.openPortfolio({ fast: true });
+    if (desktop.state === 'boot' || desktop.state === 'opening' || desktop.state === 'program') return;
+    playSfx('click');
+    desktop.openPortfolio();
   }
 
   function startDive() {
@@ -686,7 +685,7 @@ export async function mountStage() {
     if (e.key !== 'Enter') return;
     const tag = e.target?.tagName;
     if (tag === 'A' || tag === 'BUTTON' || tag === 'INPUT') return;
-    quickEnter();
+    advance();
   });
 
   globalEventBus.on('radio-command', ({ action }) => room.pressRadioButton(action));
@@ -695,8 +694,7 @@ export async function mountStage() {
     if (stage.current !== 'room') return;
     if (desktop.closeApp()) playSfx('click');
   });
-  globalEventBus.on('stage-start', quickEnter);
-  globalEventBus.on('stage-skip', enterDirect);
+  globalEventBus.on('room-advance', advance);
   globalEventBus.on('stage-power-off', powerOff);
   globalEventBus.on('language-changed', ({ language: next }) => {
     language = next;

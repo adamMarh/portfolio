@@ -251,7 +251,7 @@ Opening a body replaces the index with the detail panel: a left drawer `min(600p
 
 Compact layouts (under 820px wide, or under 520px tall, i.e. landscape phones; see `src/utils/layout.js`): the top bar slims to 60px (54px when short), the role and zoom rail drop out (pinch replaces the rail), and the index becomes a bottom pill toggle with a count badge that opens a sheet sized to the free height (up to 62dvh). Narrow portrait screens additionally turn the detail panel into a 62dvh bottom sheet with a drag handle (swipe down to close); landscape phones keep the side drawer. Under 480px the top-bar wordmark stacks on two lines. Every edge-pinned control keeps the gutter or the device safe-area inset, whichever is larger. All controls keep a 44px minimum hit area (`spacing.hit`).
 
-The room layer is a fixed composition: identity top left, language top right, and the start control centred at the bottom.
+The room layer is a fixed composition: identity top left, language top right, and the hint centred at the bottom. There is no visible way past the computer: visitors reach the portfolio by turning it on and opening its Portfolio icon.
 
 ## Elevation & Depth
 
@@ -262,7 +262,7 @@ Depth is tonal first: solid navy panels over the dark scene, gold hairlines for 
 - **Drawer edge** (`box-shadow: 30px 0 80px -40px rgba(0,0,0,0.9)`): the detail panel over the scene.
 - **Gold lift** (`box-shadow: 0 8px 24px -10px rgba(245,200,66,0.55)`; hover `0 12px 28px -10px rgba(245,200,66,0.7)`): primary button only.
 - **Neon halo text** (`text-shadow: 0 1px 2px rgba(0,0,0,0.9), 0 0 18px rgba(0,0,0,0.85)`): room overlay text, which sits in front of lit neons.
-- **Nudge ring** (`0 0 0 0 → 0 0 0 18px` gold fading out, 700ms): the start control when the visitor tries to act before the room is ready.
+- **Hint nudge** (gold text with a soft gold glow, fading back to `ink-3` over 900ms): the room hint when a click misses the computer.
 
 ### Named Rules
 **The Dark Seat Rule.** Shadows are black, blurred and negative-spread; the only coloured shadow is gold under the primary button.
@@ -295,8 +295,8 @@ A solid navy panel with a gold Orbitron label naming the list. Each row is a 40p
 ### Detail Panel
 A left drawer of near-opaque navy with a gold-line right edge; slides in on a 560ms drawer curve, out in 420ms. Content switches between bodies by dimming to 0.25 opacity with a 3px blur for 220ms. Profile adds a timeline of hairline-separated rows (128px date column, cyan employer). A previous/next pager closes the panel.
 
-### Room Start Control
-The room's DOM-mirrored primary action: a 52px dark pill with a label and a gold key cap in VT323 holding "Enter" and the drawn return-arrow icon. A hint line below in `ink-3`. Full width under 820px.
+### Room Step Control (keyboard only)
+Out of sight until it has keyboard focus: a 52px dark pill with a label and a gold key cap in VT323 holding "Enter" and the drawn return-arrow icon. It walks the same path as a pointer, one step per press ("Turn on the computer", then "Open the portfolio"), never a shortcut; the Enter key does the same anywhere in the room. Below it, the hint line in `ink-3`, which flashes gold when a click misses the computer.
 
 ### CRT Layer (signature)
 The computer is dark until the visitor clicks it: it boots (power-on line, BIOS text), the camera leans in, and the AM-OS desktop offers two pixel icons, Portfolio (Saturn) and Paint, a small drawing app on off-white paper with brush, eraser, three sizes, clear and a 12-colour palette. The screen material composites the AM-OS desktop canvas and the live solar render, with barrel curvature, scanlines, a slight 62Hz brightness ripple, and pink/ice glass reflections. After the dive, the same CRT post pass runs full-viewport over the site and relaxes `strength` from 1 to 0 over 1100ms; powering off collapses the picture to a line and a dot (700ms) before the 1500ms pull-back.
