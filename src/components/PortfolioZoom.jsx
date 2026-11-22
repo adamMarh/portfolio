@@ -35,16 +35,18 @@ export default function PortfolioZoom() {
       <button type="button" className="zoom-step" aria-label="Zoom +" onClick={() => update(level + 0.1)}>
         <SpyglassIcon plus />
       </button>
-      <input
-        type="range"
-        className="zoom-slider"
-        min={0}
-        max={STEPS}
-        value={Math.round(level * STEPS)}
-        aria-label={getTranslation(language, 'nav.zoom')}
-        aria-orientation="vertical"
-        onChange={(e) => update(Number(e.target.value) / STEPS)}
-      />
+      <div className="zoom-track">
+        <input
+          type="range"
+          className="zoom-slider"
+          min={0}
+          max={STEPS}
+          value={Math.round(level * STEPS)}
+          aria-label={getTranslation(language, 'nav.zoom')}
+          aria-orientation="vertical"
+          onChange={(e) => update(Number(e.target.value) / STEPS)}
+        />
+      </div>
       <button type="button" className="zoom-step" aria-label="Zoom −" onClick={() => update(level - 0.1)}>
         <SpyglassIcon />
       </button>

@@ -3,9 +3,10 @@ import { useLanguage } from '../context/LanguageContext.jsx';
 import { getTranslation } from '../i18n/translations.js';
 import { useBusEvent, useCoarsePointer, useStage } from '../hooks/useStage.js';
 import { requestStage } from '../services/stage/state.js';
+import { globalEventBus } from '../utils/eventBus.js';
 import LanguageToggle from './LanguageToggle.jsx';
 import { RoomRadioControls } from './RadioControls.jsx';
-import { EnterKeyIcon } from './Icons.jsx';
+import { CloseIcon, EnterKeyIcon } from './Icons.jsx';
 
 function hintKey({ computer, mode }, coarse) {
   const touch = coarse ? 'Touch' : '';
@@ -30,6 +31,9 @@ export default function RoomOverlay() {
   useBusEvent('room-desk', useCallback((next) => setDesk(next), []));
 
   useBusEvent('room-missed-click', useCallback(() => setNudge((n) => n + 1), []));
+  // On a phone the app window's close box is a few pixels wide: touch screens
+  // get a real, finger-sized button for it.
+  const openApp = desk.mode === 'closeup' && (desk.computer === 'paint' || desk.computer === 'encyclopedia') ? desk.computer : null;
 
   // Coming back from the site, give keyboard focus back to the start button.
   const previous = useRef(stage);
@@ -67,6 +71,12 @@ export default function RoomOverlay() {
             </kbd>
           )}
         </button>
+        {coarse && openApp && (
+          <button type="button" className="room-close-app" onClick={() => globalEventBus.emit('room-close-app')}>
+            <CloseIcon />
+            {t('room.closeApp').replace('{app}', t(`room.screen.${openApp}`))}
+          </button>
+        )}
         <p className="room-start__hint" aria-live="polite">{t(hintKey(desk, coarse))}</p>
       </div>
     </div>

@@ -249,7 +249,7 @@ The site is a full-bleed WebGL canvas with controls floated over it at a fluid g
 
 Opening a body replaces the index with the detail panel: a left drawer `min(600px, 46vw)` wide (54vw under 1100px), padded `clamp(24px, 3.4vw, 56px)`, with the scene still visible to the right. Title, subtitle, meta, description, links and tags stack with 10 to 32px steps; a two-column pager sits at the bottom.
 
-Under 820px: the role and zoom rail drop out, the index becomes a bottom pill toggle with a count badge that opens a 62vh sheet, and the detail panel becomes a 62vh bottom sheet. All controls keep a 44px minimum hit area (`spacing.hit`).
+Compact layouts (under 820px wide, or under 520px tall, i.e. landscape phones; see `src/utils/layout.js`): the top bar slims to 60px (54px when short), the role and zoom rail drop out (pinch replaces the rail), and the index becomes a bottom pill toggle with a count badge that opens a sheet sized to the free height (up to 62dvh). Narrow portrait screens additionally turn the detail panel into a 62dvh bottom sheet with a drag handle (swipe down to close); landscape phones keep the side drawer. Under 480px the top-bar wordmark stacks on two lines. Every edge-pinned control keeps the gutter or the device safe-area inset, whichever is larger. All controls keep a 44px minimum hit area (`spacing.hit`).
 
 The room layer is a fixed composition: identity top left, language top right, and the start control centred at the bottom.
 

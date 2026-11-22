@@ -23,11 +23,19 @@ export default function ProjectIndex() {
     if (row && document.activeElement === document.body) row.focus({ preventScroll: true });
   }, []));
 
+  // The folded index (phones) closes with Escape or a tap anywhere outside it.
   useEffect(() => {
     if (!sheetOpen) return undefined;
     const onKey = (e) => e.key === 'Escape' && setSheetOpen(false);
+    const onPointer = (e) => {
+      if (!e.target.closest?.('.index')) setSheetOpen(false);
+    };
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    window.addEventListener('pointerdown', onPointer, true);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      window.removeEventListener('pointerdown', onPointer, true);
+    };
   }, [sheetOpen]);
 
   const bodies = BODY_ORDER.map((idx) => getBody(language, idx));
@@ -56,8 +64,8 @@ export default function ProjectIndex() {
                 type="button"
                 className="index__row"
                 aria-current={activeIdx === body.idx ? 'true' : undefined}
-                onPointerEnter={() => preview(body.idx)}
-                onPointerLeave={() => preview(null)}
+                onPointerEnter={(e) => e.pointerType === 'mouse' && preview(body.idx)}
+                onPointerLeave={(e) => e.pointerType === 'mouse' && preview(null)}
                 onFocus={() => preview(body.idx)}
                 onBlur={() => preview(null)}
                 onClick={(e) => {

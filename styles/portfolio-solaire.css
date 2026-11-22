@@ -30,13 +30,39 @@
   --gutter: clamp(16px, 2.2vw, 32px);
   --topbar-h: 68px;
   --radius: 10px;
+
+  /* Notch, Dynamic Island, home indicator (needs viewport-fit=cover). Every
+     control pinned to an edge keeps at least the gutter, more where the
+     hardware cuts in. */
+  --safe-t: env(safe-area-inset-top, 0px);
+  --safe-r: env(safe-area-inset-right, 0px);
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --safe-l: env(safe-area-inset-left, 0px);
+  --edge-t: max(var(--gutter), var(--safe-t));
+  --edge-r: max(var(--gutter), var(--safe-r));
+  --edge-b: max(var(--gutter), var(--safe-b));
+  --edge-l: max(var(--gutter), var(--safe-l));
+  --topbar-total: calc(var(--topbar-h) + var(--safe-t));
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
-html { color-scheme: dark; overflow: hidden; height: 100%; }
+html {
+  color-scheme: dark;
+  overflow: hidden;
+  height: 100%;
+  /* Touch: no grey flash over tapped controls (each has its own :active),
+     no font inflation in landscape, no rubber band or pull-to-refresh
+     behind a full-screen scene. */
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  overscroll-behavior: none;
+}
 
 body {
+  height: 100%;
+  overscroll-behavior: none;
   background: var(--navy-950);
   color: var(--ink);
   font-family: var(--font-text);
@@ -55,6 +81,14 @@ body {
 
 button { font: inherit; color: inherit; background: none; border: none; cursor: pointer; }
 a { color: inherit; }
+/* Taps fire at once (no double-tap-zoom wait); holding a control never
+   selects its label or opens the link callout. Body copy stays selectable. */
+button, a, input { touch-action: manipulation; }
+button, .button-primary, .icon-button, .lang-toggle, .room-start, .index__toggle, .zoom-control {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
 ol, ul { list-style: none; }
 
 .icon { width: 18px; height: 18px; flex-shrink: 0; }
@@ -73,6 +107,9 @@ ol, ul { list-style: none; }
   height: 100%;
   display: block;
   touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
   cursor: grab;
 }
 body[data-stage='room'] #canvas { cursor: default; }
@@ -106,6 +143,8 @@ body.custom-cursor-enabled * { cursor: none !important; }
 body.is-hovering #fake-cursor { filter: drop-shadow(0 0 6px rgba(101, 220, 255, 0.9)); }
 /* Over the computer's screen, its own pixel cursor takes over. */
 body.is-on-screen #fake-cursor { opacity: 0; }
+/* A finger or pen on a touchscreen laptop: the drawn mouse cursor waits. */
+body.is-touch-input #fake-cursor { opacity: 0; }
 
 /* ---------- shared pieces ---------- */
 
@@ -218,7 +257,7 @@ body.is-on-screen #fake-cursor { opacity: 0; }
   position: fixed;
   z-index: 60;
   left: 50%;
-  bottom: calc(var(--gutter) + 44px);
+  bottom: calc(var(--edge-b) + 44px);
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -243,10 +282,10 @@ body.is-detail-view .launch-toast { left: calc(min(600px, 46vw) + (100vw - min(6
 @media (max-width: 1100px) {
   body.is-detail-view .launch-toast { left: calc(min(560px, 54vw) + (100vw - min(560px, 54vw)) / 2); }
 }
-@media (max-width: 820px) {
+@media (max-width: 820px), (max-height: 520px) {
   /* Phones: the panel is a bottom sheet, so the note sits under the top bar. */
   .launch-toast,
-  body.is-detail-view .launch-toast { left: 50%; bottom: auto; top: calc(var(--topbar-h) + 10px); }
+  body.is-detail-view .launch-toast { left: 50%; bottom: auto; top: calc(var(--topbar-total) + 10px); }
 }
 
 .visually-hidden {
@@ -284,8 +323,8 @@ body[data-stage='room'] .room-ui {
 
 .room-id {
   position: absolute;
-  top: var(--gutter);
-  left: var(--gutter);
+  top: var(--edge-t);
+  left: var(--edge-l);
   pointer-events: none;
 }
 .room-id .wordmark { font-size: 14px; }
@@ -298,8 +337,8 @@ body[data-stage='room'] .room-ui {
 
 .room-lang {
   position: absolute;
-  top: var(--gutter);
-  right: var(--gutter);
+  top: var(--edge-t);
+  right: var(--edge-r);
 }
 
 
@@ -310,7 +349,7 @@ body[data-stage='room'] .room-ui {
   left: 0;
   right: 0;
   bottom: 0;
-  height: 220px;
+  height: min(220px, 45vh);
   background: linear-gradient(0deg, rgba(1, 2, 6, 0.92) 0%, rgba(1, 2, 6, 0.7) 45%, rgba(1, 2, 6, 0) 100%);
   pointer-events: none;
   z-index: -1;
@@ -320,7 +359,7 @@ body[data-stage='room'] .room-ui {
 .room-ui::after,
 .room-start { transition: opacity 240ms ease, visibility 0s linear 240ms; }
 .room-ui.is-closeup::after { opacity: 0; }
-.room-ui.is-closeup .room-start { opacity: 0; visibility: hidden; pointer-events: none; }
+.room-ui.is-closeup .room-start { position: absolute; bottom: 100%; opacity: 0; visibility: hidden; pointer-events: none; }
 .room-ui.is-closeup .room-start__hint {
   padding: 6px 14px;
   border-radius: 999px;
@@ -330,7 +369,7 @@ body[data-stage='room'] .room-ui {
 .room-start-wrap {
   position: absolute;
   left: 50%;
-  bottom: calc(var(--gutter) + 8px);
+  bottom: calc(var(--edge-b) + 8px);
   transform: translateX(-50%);
   display: flex;
   flex-direction: column;
@@ -377,6 +416,7 @@ body[data-stage='room'] .room-ui {
   100% { box-shadow: 0 0 0 18px rgba(245, 200, 66, 0), 0 18px 40px -18px rgba(0, 0, 0, 0.9); }
 }
 .room-start__hint {
+  pointer-events: none;
   font-size: 13px;
   color: var(--ink-3);
   letter-spacing: 0.02em;
@@ -386,8 +426,8 @@ body[data-stage='room'] .room-ui {
 /* Radio mirror controls: off-screen until a keyboard user tabs into them. */
 .radio-controls {
   position: absolute;
-  left: var(--gutter);
-  bottom: calc(var(--gutter) + 8px);
+  left: var(--edge-l);
+  bottom: calc(var(--edge-b) + 8px);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -399,6 +439,47 @@ body[data-stage='room'] .room-ui {
   opacity: 0;
 }
 .radio-controls:focus-within { clip-path: none; opacity: 1; z-index: 2; }
+/* Touch screens: the 3D radio's keys are a few pixels wide on a phone, so its
+   play and next buttons stay on screen, under the language switch. The track
+   name stays for screen readers only. */
+@media (pointer: coarse) {
+  .radio-controls {
+    left: auto;
+    right: var(--edge-r);
+    top: calc(var(--edge-t) + 54px);
+    bottom: auto;
+    padding: 4px;
+    gap: 4px;
+    clip-path: none;
+    opacity: 1;
+  }
+  .radio-controls__now {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+}
+
+/* Touch: closes Paint or the Encyclopedia, in the start button's place. */
+.room-close-app {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 0 22px 0 16px;
+  border-radius: 999px;
+  border: 1px solid var(--gold-line);
+  background: rgba(3, 6, 16, 0.85);
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 600;
+  box-shadow: 0 18px 40px -18px rgba(0, 0, 0, 0.9);
+  transition: transform 160ms var(--ease-out);
+}
+.room-close-app .icon { color: var(--gold); }
+.room-close-app:active { transform: scale(0.97); }
 .radio-controls__now { font-size: 13px; color: var(--ink-2); max-width: 260px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* Site: "on air" button, three bars that dance while the radio plays. */
@@ -450,8 +531,8 @@ body[data-stage='site'] .site-ui > .zoom-control { transition-delay: 700ms; }
   left: 0;
   right: 0;
   z-index: 35;
-  height: var(--topbar-h);
-  padding: 0 var(--gutter);
+  height: var(--topbar-total);
+  padding: var(--safe-t) var(--edge-r) 0 var(--edge-l);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -497,10 +578,11 @@ body[data-stage='site'] .site-ui > .zoom-control { transition-delay: 700ms; }
 .index {
   position: fixed;
   z-index: 30;
-  left: var(--gutter);
-  top: calc(var(--topbar-h) + 12px);
+  left: var(--edge-l);
+  top: calc(var(--topbar-total) + 12px);
   width: 304px;
-  max-height: calc(100vh - var(--topbar-h) - 12px - var(--gutter) - 64px);
+  max-height: calc(100vh - var(--topbar-total) - 12px - var(--edge-b) - 64px);
+  max-height: calc(100dvh - var(--topbar-total) - 12px - var(--edge-b) - 64px);
   display: flex;
   transform: translateX(-12px);
 }
@@ -529,6 +611,7 @@ body[data-stage='site'] .site-ui > .zoom-control { transition-delay: 700ms; }
   display: grid;
   gap: 2px;
   overflow-y: auto;
+  overscroll-behavior: contain;
   scrollbar-width: thin;
   scrollbar-color: var(--gold-line) transparent;
 }
@@ -593,9 +676,9 @@ body.is-detail-view .index {
 .site-hint {
   position: fixed;
   z-index: 20;
-  left: var(--gutter);
-  right: var(--gutter);
-  bottom: var(--gutter);
+  left: var(--edge-l);
+  right: var(--edge-r);
+  bottom: var(--edge-b);
   text-align: center;
   transform: translateY(6px);
   font-size: 13px;
@@ -684,8 +767,8 @@ body:not(.is-detail-view) #drag-hint { opacity: 0 !important; }
 .zoom-control {
   position: fixed;
   z-index: 30;
-  right: var(--gutter);
-  bottom: var(--gutter);
+  right: var(--edge-r);
+  bottom: var(--edge-b);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -720,26 +803,38 @@ body.is-detail-view .site-ui > .zoom-control { opacity: 0; visibility: hidden; t
   stroke-linecap: round;
 }
 .zoom-icon__handle { stroke-width: 2.4; }
+@media (pointer: coarse) {
+  .zoom-step { width: 44px; height: 44px; padding: 10px; }
+}
+/* A horizontal range turned upright: a vertical writing-mode range only
+   exists in recent browsers, a rotated one renders the same everywhere.
+   Rotated -90deg, the minimum (fully zoomed out) sits at the bottom. */
+.zoom-track { position: relative; width: 28px; height: 128px; }
 .zoom-slider {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 128px;
+  height: 28px;
+  margin: 0;
   -webkit-appearance: none;
   appearance: none;
-  writing-mode: vertical-lr;
-  direction: rtl;
-  width: 20px;
-  height: 128px;
   background: transparent;
+  touch-action: none;
+  transform: translate(-50%, -50%) rotate(-90deg);
 }
-.zoom-slider::-webkit-slider-runnable-track { width: 2px; background: var(--gold-line); }
-.zoom-slider::-moz-range-track { width: 2px; background: var(--gold-line); }
+.zoom-slider::-webkit-slider-runnable-track { height: 2px; background: var(--gold-line); }
+.zoom-slider::-moz-range-track { height: 2px; background: var(--gold-line); }
 .zoom-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
-  width: 14px;
-  height: 14px;
-  margin-left: -6px;
+  width: 16px;
+  height: 16px;
+  margin-top: -7px;
+  border: none;
   border-radius: 50%;
   background: var(--gold);
 }
-.zoom-slider::-moz-range-thumb { width: 14px; height: 14px; border: none; border-radius: 50%; background: var(--gold); }
+.zoom-slider::-moz-range-thumb { width: 16px; height: 16px; border: none; border-radius: 50%; background: var(--gold); }
 
 /* ---------- detail panel ---------- */
 
@@ -750,7 +845,7 @@ body.is-detail-view .site-ui > .zoom-control { opacity: 0; visibility: hidden; t
   top: 0;
   bottom: 0;
   width: min(600px, 46vw);
-  padding-top: var(--topbar-h);
+  padding-top: var(--topbar-total);
   background: linear-gradient(90deg, rgba(4, 8, 22, 0.98) 0%, rgba(4, 8, 22, 0.94) 80%, rgba(4, 8, 22, 0.86) 100%);
   border-right: 1px solid var(--gold-line);
   box-shadow: 30px 0 80px -40px rgba(0, 0, 0, 0.9);
@@ -763,10 +858,12 @@ body.is-detail-view .site-ui > .zoom-control { opacity: 0; visibility: hidden; t
   visibility: visible;
   transition: transform 560ms var(--ease-drawer), visibility 0s;
 }
+.panel__grab { display: none; }
 .panel__scroll {
   height: 100%;
   overflow-y: auto;
-  padding: 20px clamp(24px, 3.4vw, 56px) 28px;
+  overscroll-behavior: contain;
+  padding: 20px clamp(24px, 3.4vw, 56px) max(28px, var(--safe-b)) max(clamp(24px, 3.4vw, 56px), var(--safe-l));
   display: flex;
   flex-direction: column;
   scrollbar-width: thin;
@@ -932,25 +1029,32 @@ body.is-detail-view .site-ui > .zoom-control { opacity: 0; visibility: hidden; t
   #panel { width: min(560px, 54vw); }
 }
 
-@media (max-width: 820px) {
+/* Compact (src/utils/layout.js COMPACT_QUERY): phones in either orientation
+   and small windows. Slim chrome, the index folds into a button, pinch
+   replaces the zoom slider. */
+@media (max-width: 820px), (max-height: 520px) {
   :root { --topbar-h: 60px; }
   .wordmark { font-size: 13px; letter-spacing: 0.24em; }
   .power-button { width: 44px; padding: 0; }
   .power-button__label { display: none; }
   .zoom-control { display: none; }
-  .site-hint { bottom: 84px; font-size: 12px; white-space: normal; }
+  .site-hint { bottom: calc(var(--edge-b) + 64px); font-size: 12px; white-space: normal; }
 
   .index {
     top: auto;
-    left: 12px;
-    right: 12px;
-    bottom: 12px;
-    width: auto;
+    left: var(--edge-l);
+    bottom: max(12px, var(--safe-b));
+    width: min(340px, calc(100vw - var(--edge-l) - var(--edge-r)));
     max-height: none;
     flex-direction: column-reverse;
     gap: 10px;
     transform: translateY(10px);
+    /* The folded list still takes room above the button: let touches pass
+       through that empty box to the scene, or drags and pinches there would
+       miss the canvas (and pinch the whole page instead). */
+    pointer-events: none;
   }
+  .index > * { pointer-events: auto; }
   .index__toggle {
     align-self: flex-start;
     display: inline-flex;
@@ -964,7 +1068,9 @@ body.is-detail-view .site-ui > .zoom-control { opacity: 0; visibility: hidden; t
     font-size: 15px;
     font-weight: 600;
     box-shadow: 0 16px 40px -16px rgba(0, 0, 0, 0.9);
+    transition: transform 160ms var(--ease-out);
   }
+  .index__toggle:active { transform: scale(0.97); }
   .index__count {
     min-width: 24px;
     height: 24px;
@@ -978,7 +1084,9 @@ body.is-detail-view .site-ui > .zoom-control { opacity: 0; visibility: hidden; t
     place-items: center;
   }
   .index__panel {
-    max-height: 62vh;
+    /* Whatever fits between the top bar and the toggle, up to 62% of the screen. */
+    max-height: min(62vh, calc(100vh - var(--topbar-total) - 84px - var(--safe-b)));
+    max-height: min(62dvh, calc(100dvh - var(--topbar-total) - 84px - var(--safe-b)));
     background: var(--surface-solid);
     transform: translateY(16px);
     opacity: 0;
@@ -992,10 +1100,39 @@ body.is-detail-view .site-ui > .zoom-control { opacity: 0; visibility: hidden; t
     transition: transform 380ms var(--ease-drawer), opacity 240ms ease, visibility 0s;
   }
 
+  .panel__body { margin-top: 16px; }
+  .panel__desc { font-size: 16px; }
+  .timeline__item { grid-template-columns: 1fr; gap: 6px; }
+  .pager { grid-template-columns: 1fr; }
+  .pager__link--next { justify-content: space-between; text-align: left; flex-direction: row; }
+
+  .room-id__role { max-width: 60vw; }
+}
+
+/* Landscape phones: little height, so the text steps down. */
+@media (max-height: 520px) {
+  :root { --topbar-h: 54px; }
+  .panel__scroll { padding-top: 8px; }
+  .panel__title { font-size: 24px; }
+  .panel__title-detail { font-size: 17px; margin-top: 6px; }
+  .panel__desc { margin-top: 18px; font-size: 15px; line-height: 1.6; }
+  .room-id__role { display: none; }
+  /* Centred, the start button would sit on the monitor (the thing to tap);
+     the corner under the poster and tower is free. */
+  .room-start-wrap { gap: 8px; left: var(--edge-l); transform: none; align-items: flex-start; }
+  .room-start { min-height: 46px; }
+}
+
+/* Sheet (SHEET_QUERY): narrow portrait screens. The index spans the width and
+   the detail panel rises as a bottom sheet that a swipe down puts away. */
+@media (max-width: 820px) and (orientation: portrait) {
+  .index { width: auto; right: var(--edge-r); }
+
   #panel {
     top: auto;
     width: 100%;
     height: 62vh;
+    height: 62dvh;
     padding-top: 0;
     border-right: none;
     border-top: 1px solid var(--gold-line);
@@ -1004,20 +1141,39 @@ body.is-detail-view .site-ui > .zoom-control { opacity: 0; visibility: hidden; t
     transform: translateY(calc(100% + 2px));
   }
   #panel.is-open { transform: translateY(0); }
-  .panel__scroll { padding: 12px 20px 24px; }
-  .panel__body { margin-top: 16px; }
-  .panel__desc { font-size: 16px; }
-  .timeline__item { grid-template-columns: 1fr; gap: 6px; }
-  .pager { grid-template-columns: 1fr; }
-  .pager__link--next { justify-content: space-between; text-align: left; flex-direction: row; }
+  #panel.is-sheet-dragging { transition: none; }
+  .panel__grab {
+    display: block;
+    position: absolute;
+    z-index: 1;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 28px;
+    touch-action: none;
+    cursor: grab;
+  }
+  .panel__grab::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 10px;
+    width: 36px;
+    height: 4px;
+    border-radius: 999px;
+    background: var(--ink-3);
+    transform: translateX(-50%);
+  }
+  .panel__scroll { padding: 24px max(20px, var(--safe-r)) calc(24px + var(--safe-b)) max(20px, var(--safe-l)); }
 
-  .room-id__role { max-width: 60vw; }
-  .room-start-wrap { width: calc(100vw - 32px); }
+  .room-start-wrap { width: calc(100vw - var(--edge-l) - var(--edge-r)); }
   .room-start { width: 100%; justify-content: space-between; }
 }
 
 @media (max-width: 480px) {
   .wordmark { font-size: 12px; letter-spacing: 0.14em; }
+  /* Four controls leave the name ~110px: stack it on two lines, whole. */
+  .topbar .wordmark { white-space: normal; width: min-content; line-height: 1.3; letter-spacing: 0.12em; }
   .topbar { gap: 12px; }
   .topbar__actions { gap: 6px; }
   .lang-toggle__option { min-width: 40px; padding: 0 8px; }

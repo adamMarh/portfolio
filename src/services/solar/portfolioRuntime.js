@@ -1,9 +1,11 @@
 import * as THREE from 'three';
+import { capturePointer } from '../../utils/pointer.js';
 import { PROJECTS } from '../../data/portfolio.js';
 import { createSolarScene } from './sceneService.js';
 import { getTranslation, getPlanetName } from '../../i18n/translations.js';
 import { globalEventBus } from '../../utils/eventBus.js';
 import { stage } from '../stage/state.js';
+import { isSheet } from '../../utils/layout.js';
 
 // The solar-system portfolio. It no longer owns the renderer or the frame loop:
 // the stage controller renders it into the CRT in the room and full screen on
@@ -181,8 +183,8 @@ export function mountPortfolioSolarSystem({ renderer, canvas }) {
   function detailFraming(idx) {
     const isSun = idx === -1;
     const baseRadius = radiusFor(idx);
-    // On narrow screens the panel is a bottom sheet: centre the body and lift it.
-    const narrow = W() < 900;
+    // When the panel is a bottom sheet: centre the body and lift it above it.
+    const narrow = isSheet();
     const up = new THREE.Vector3(0, 1, 0);
 
     if (isSun) {
@@ -302,11 +304,16 @@ export function mountPortfolioSolarSystem({ renderer, canvas }) {
   }
 
   // ---------- input (site stage only) ----------
+  // One finger or the mouse orbits (overview) or turns the open body (detail);
+  // two fingers pinch to zoom; the wheel and trackpad pinch zoom too.
   let dragging = false;
   let detDragging = false;
   let prevMx = 0;
   let prevMy = 0;
   let dragDist = 0;
+  let lastDownType = 'mouse';
+  const pointers = new Map(); // pointerId -> { x, y }
+  let pinchDist = 0;
 
   const active = () => stage.current === 'site';
 
@@ -323,8 +330,95 @@ export function mountPortfolioSolarSystem({ renderer, canvas }) {
     return [(e.clientX / W()) * 2 - 1, -(e.clientY / H()) * 2 + 1];
   }
 
+  // Zoom by `scale` (<1 closer) toward the world point under (clientX, clientY):
+  // the body there, else the orbital plane.
+  function zoomAt(clientX, clientY, rawScale) {
+    if (!active() || modeState.mode === 'animating' || !Number.isFinite(rawScale)) return;
+    noteInteraction();
+    mouse2d.set((clientX / W()) * 2 - 1, -(clientY / H()) * 2 + 1);
+    raycaster.setFromCamera(mouse2d, camera);
+    const hits = raycaster.intersectObjects(interactives);
+    const point = new THREE.Vector3();
+    if (hits.length > 0) {
+      point.copy(hits[0].point);
+    } else {
+      const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+      if (!raycaster.ray.intersectPlane(plane, point)) point.set(0, 0, 0);
+    }
+
+    let scale = rawScale;
+    if (modeState.mode === 'solar') {
+      const curDist = camera.position.distanceTo(camAnim.curLook);
+      scale = Math.min(ZOOM_MAX_DIST / curDist, Math.max(ZOOM_MIN_DIST / curDist, scale));
+      if (Math.abs(scale - 1) < 1e-4) return;
+    }
+
+    const curLook = camAnim.curLook.clone();
+    const nextPos = point.clone().add(camera.position.clone().sub(point).multiplyScalar(scale));
+    // Up close to one body: never pass through it, never lose it in the dark.
+    if (modeState.mode === 'detail' && selectedBody) {
+      const center = new THREE.Vector3();
+      selectedBody.getWorldPosition(center);
+      const r = radiusFor(selectedIdx);
+      const d = nextPos.distanceTo(center);
+      if ((scale < 1 && d < r * 1.6) || (scale > 1 && d > r * 30 + 20)) return;
+    }
+    camera.position.copy(nextPos);
+    camAnim.curLook.copy(point.clone().add(curLook.sub(point).multiplyScalar(scale)));
+    camera.lookAt(camAnim.curLook);
+    syncSphFromCamera();
+    if (modeState.mode === 'solar') emitZoomLevel();
+  }
+
+  function pinchState() {
+    const [a, b] = [...pointers.values()];
+    return { dist: Math.hypot(a.x - b.x, a.y - b.y), x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+  }
+
+  // A fingertip is wide and the outer planets are small: a tap that misses
+  // every body still opens the nearest one within reach of the finger.
+  function bodyNear(clientX, clientY, reach) {
+    let best = null;
+    let bestDistance = reach;
+    const center = new THREE.Vector3();
+    const camUp = new THREE.Vector3(0, 1, 0).applyQuaternion(camera.quaternion);
+    [-1, ...PROJECTS.map((_, i) => i)].forEach((idx) => {
+      const body = bodyFor(idx);
+      if (!body?.visible) return;
+      body.getWorldPosition(center);
+      const edge = center.clone().addScaledVector(camUp, radiusFor(idx)).project(camera);
+      const c = center.clone().project(camera);
+      if (c.z > 1) return; // behind the camera
+      const sx = (c.x * 0.5 + 0.5) * W();
+      const sy = (-c.y * 0.5 + 0.5) * H();
+      const radiusPx = Math.abs(edge.y - c.y) * 0.5 * H();
+      const d = Math.max(0, Math.hypot(sx - clientX, sy - clientY) - radiusPx);
+      if (d < bestDistance) {
+        bestDistance = d;
+        best = idx;
+      }
+    });
+    return best;
+  }
+
   canvas.addEventListener('pointerdown', (e) => {
-    if (!active() || modeState.mode === 'animating') return;
+    if (!active()) return;
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    lastDownType = e.pointerType;
+    capturePointer(canvas, e.pointerId);
+    if (modeState.mode === 'animating') return;
+
+    if (pointers.size >= 2) {
+      // A second finger turns the gesture into a pinch: stop orbiting, and
+      // make sure lifting the fingers is never read as a tap.
+      dragging = false;
+      detDragging = false;
+      dragDist = Infinity;
+      pinchDist = pinchState().dist;
+      document.body.classList.remove('is-dragging');
+      return;
+    }
+
     prevMx = e.clientX;
     prevMy = e.clientY;
     dragDist = 0;
@@ -334,12 +428,25 @@ export function mountPortfolioSolarSystem({ renderer, canvas }) {
       raycaster.setFromCamera(mouse2d, camera);
       if (raycaster.intersectObject(selectedBody, true).length > 0) detDragging = true;
     }
-    canvas.setPointerCapture?.(e.pointerId);
     document.body.classList.add('is-dragging');
   });
 
   canvas.addEventListener('pointermove', (e) => {
     if (!active()) return;
+    const tracked = pointers.get(e.pointerId);
+    if (tracked) {
+      tracked.x = e.clientX;
+      tracked.y = e.clientY;
+    }
+
+    if (pointers.size >= 2) {
+      if (!tracked || modeState.mode === 'animating') return;
+      const pinch = pinchState();
+      if (pinchDist > 0 && pinch.dist > 0) zoomAt(pinch.x, pinch.y, pinchDist / pinch.dist);
+      pinchDist = pinch.dist;
+      return;
+    }
+
     const dx = e.clientX - prevMx;
     const dy = e.clientY - prevMy;
 
@@ -396,11 +503,28 @@ export function mountPortfolioSolarSystem({ renderer, canvas }) {
     detDragging = false;
     document.body.classList.remove('is-dragging');
   };
-  canvas.addEventListener('pointerup', endDrag);
-  canvas.addEventListener('pointercancel', endDrag);
-  canvas.addEventListener('pointerleave', () => {
-    if (!active()) return;
-    endDrag();
+  const releasePointer = (e) => {
+    pointers.delete(e.pointerId);
+    if (pointers.size === 1) {
+      // Pinch over, one finger still down: keep orbiting from where it is,
+      // without a jump.
+      const [rest] = pointers.values();
+      prevMx = rest.x;
+      prevMy = rest.y;
+      pinchDist = 0;
+      if (active() && modeState.mode === 'solar') dragging = true;
+      return;
+    }
+    if (pointers.size === 0) endDrag();
+  };
+  canvas.addEventListener('pointerup', releasePointer);
+  canvas.addEventListener('pointercancel', releasePointer);
+  canvas.addEventListener('lostpointercapture', (e) => {
+    if (pointers.has(e.pointerId)) releasePointer(e);
+  });
+  canvas.addEventListener('pointerleave', (e) => {
+    // A lifted finger also "leaves"; only a mouse leaving ends anything here.
+    if (!active() || e.pointerType !== 'mouse') return;
     tooltip.style.opacity = '0';
     document.body.classList.remove('is-hovering');
   });
@@ -410,47 +534,41 @@ export function mountPortfolioSolarSystem({ renderer, canvas }) {
     [mouse2d.x, mouse2d.y] = normMouse(e);
     raycaster.setFromCamera(mouse2d, camera);
     const hits = raycaster.intersectObjects(interactives);
-    if (hits.length > 0) {
+    let idx = hits.length > 0 ? hits[0].object.userData.idx : null;
+    if (idx === null && lastDownType !== 'mouse') idx = bodyNear(e.clientX, e.clientY, 28);
+    if (idx !== null) {
       noteInteraction();
-      enterDetail(hits[0].object.userData.idx);
+      enterDetail(idx);
     }
   });
 
-  // Pointer-centered zoom toward the world point under the cursor (or the y=0 plane).
+  // Mouse wheel and trackpads. Firefox reports lines (deltaMode 1) rather than
+  // pixels; Chrome, Edge and Firefox send a trackpad pinch as ctrl + wheel with
+  // small deltas, so it gets a stronger factor.
   canvas.addEventListener('wheel', (e) => {
     if (!active()) return;
     e.preventDefault();
-    if (modeState.mode === 'animating') return;
-    noteInteraction();
-
-    const rect = canvas.getBoundingClientRect();
-    mouse2d.set(((e.clientX - rect.left) / rect.width) * 2 - 1, -((e.clientY - rect.top) / rect.height) * 2 + 1);
-    raycaster.setFromCamera(mouse2d, camera);
-    const hits = raycaster.intersectObjects(interactives);
-    const point = new THREE.Vector3();
-    if (hits.length > 0) {
-      point.copy(hits[0].point);
-    } else {
-      const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
-      if (!raycaster.ray.intersectPlane(plane, point)) point.set(0, 0, 0);
-    }
-
-    let scale = Math.exp(e.deltaY * 0.0012);
-    if (modeState.mode === 'solar') {
-      const curDist = camera.position.distanceTo(camAnim.curLook);
-      scale = Math.min(ZOOM_MAX_DIST / curDist, Math.max(ZOOM_MIN_DIST / curDist, scale));
-      if (Math.abs(scale - 1) < 1e-4) return;
-    }
-
-    const curLook = camAnim.curLook.clone();
-    const camOffset = camera.position.clone().sub(point).multiplyScalar(scale);
-    const lookOffset = curLook.clone().sub(point).multiplyScalar(scale);
-    camera.position.copy(point.clone().add(camOffset));
-    camAnim.curLook.copy(point.clone().add(lookOffset));
-    camera.lookAt(camAnim.curLook);
-    syncSphFromCamera();
-    if (modeState.mode === 'solar') emitZoomLevel();
+    let delta = e.deltaY;
+    if (e.deltaMode === 1) delta *= 16;
+    else if (e.deltaMode === 2) delta *= H();
+    zoomAt(e.clientX, e.clientY, Math.exp(delta * (e.ctrlKey ? 0.01 : 0.0012)));
   }, { passive: false });
+
+  // Safari on a Mac trackpad: pinch arrives as gesture events instead (and
+  // would otherwise zoom the whole page). On iPhone and iPad the same events
+  // accompany a two-finger pinch, which the pointers above already handle.
+  let gestureScale = 1;
+  canvas.addEventListener('gesturestart', (e) => {
+    e.preventDefault();
+    gestureScale = 1;
+  });
+  canvas.addEventListener('gesturechange', (e) => {
+    e.preventDefault();
+    const scale = e.scale || 1;
+    if (pointers.size < 2) zoomAt(e.clientX, e.clientY, gestureScale / scale);
+    gestureScale = scale;
+  });
+  canvas.addEventListener('gestureend', (e) => e.preventDefault());
 
   canvas.addEventListener('contextmenu', (e) => e.preventDefault());
 

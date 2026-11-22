@@ -174,8 +174,24 @@ const TOOL_GLYPHS = {
     '..aaaaaaaa..',
     '............',
   ],
+  // A floppy disk: saves the drawing as a PNG.
+  save: [
+    'aaaaaaaaaaa.',
+    'addbbbbbbdda',
+    'addbbbbabdda',
+    'addbbbbabdda',
+    'addbbbbbbdda',
+    'adddddddddda',
+    'adeeeeeeeeda',
+    'adeaaaaaaeda',
+    'adeeeeeeeeda',
+    'adeaaaaaaeda',
+    'adeeeeeeeeda',
+    'aaaaaaaaaaaa',
+  ],
 };
-const TOOL_PALETTE = { a: INK, b: '#c9cdd4', c: '#ff5fae' };
+const TOOL_PALETTE = { a: INK, b: '#c9cdd4', c: '#ff5fae', d: '#2f6bff', e: PAPER };
+const SAVED_FLASH_S = 0.8;
 
 const clamp01 = (v) => Math.min(1, Math.max(0, v));
 const easeInOut = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
@@ -183,6 +199,11 @@ const easeOut = (t) => 1 - Math.pow(1 - t, 4);
 const lerp = (a, b, t) => a + (b - a) * t;
 const phase = (t, [a, b]) => clamp01((t - a) / (b - a));
 const inRect = (p, r) => p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h;
+// Distance from a point to a rectangle's edge (0 inside it).
+const rectDistance = (p, r) => Math.hypot(
+  Math.max(r.x - p.x, 0, p.x - (r.x + r.w)),
+  Math.max(r.y - p.y, 0, p.y - (r.y + r.h))
+);
 
 function drawPixels(ctx, rows, x, y, scale, palette) {
   rows.forEach((row, r) => {
@@ -264,9 +285,13 @@ export function createDesktopScreen({ getStrings }) {
     { id: 'size-1', y: AREA.y + 188 },
     { id: 'size-2', y: AREA.y + 244 },
     { id: 'clear', y: AREA.y + 316 },
+    { id: 'save', y: AREA.y + 372 },
   ].map((b) => ({ ...b, x: TOOLBAR_X, w: 64, h: 52 }));
   const swatches = COLORS.map((color, i) => ({ color, x: AREA.x + 70 + i * 50, y: PALETTE_Y, w: 42, h: 42 }));
   const closeBox = { x: PW.x + PW.w - 30, y: PW.y + 6, w: 20, h: 18 };
+  // What counts as pressing it: the drawn box is small, so the whole right
+  // end of the title bar (and a little below it) answers.
+  const closeHit = { x: PW.x + PW.w - 64, y: PW.y - 6, w: 70, h: PW.bar + 12 }; // stops above the paper
 
   let state = 'off';
   let stateStart = performance.now() / 1000;
@@ -276,7 +301,11 @@ export function createDesktopScreen({ getStrings }) {
   const pointer = { x: -1, y: -1, inside: false };
   let hover = null;
   let lastKey = '';
-  const handlers = { solarStart: () => {}, portfolioReady: () => {}, stateChange: () => {}, click: () => {} };
+  const handlers = { solarStart: () => {}, portfolioReady: () => {}, stateChange: () => {}, click: () => {}, save: () => {} };
+  // Save fires on release over the button (a touch only counts as a gesture,
+  // which downloads and the share sheet need, when the finger lifts).
+  let savePressed = false;
+  let savedAt = -Infinity;
 
   const now = () => performance.now() / 1000;
   const elapsed = () => now() - stateStart;
@@ -479,7 +508,8 @@ export function createDesktopScreen({ getStrings }) {
     const selected =
       (b.id === 'brush' && paint.tool === 'brush') ||
       (b.id === 'eraser' && paint.tool === 'eraser') ||
-      (b.id.startsWith('size-') && SIZES[Number(b.id.slice(5))] === paint.size);
+      (b.id.startsWith('size-') && SIZES[Number(b.id.slice(5))] === paint.size) ||
+      (b.id === 'save' && (savePressed || now() - savedAt < SAVED_FLASH_S));
     ctx.fillStyle = selected ? GOLD : hover === b.id ? '#2a3550' : '#18213a';
     ctx.fillRect(b.x, b.y, b.w, b.h);
     ctx.strokeStyle = INK;
@@ -695,18 +725,46 @@ export function createDesktopScreen({ getStrings }) {
 
   // ---------- input (canvas pixel coordinates) ----------
 
-  function hitTest(p) {
+  // Every target of the current window as [id, rect], for touch slop.
+  function targets() {
+    if (state === 'desktop') return icons.map((i) => [i.id, iconHit(i)]);
+    if (state === 'encyclopedia') return [['close', closeHit], ...encRows.map((r) => [r.id, r])];
+    if (state === 'paint') {
+      return [['close', closeHit], ...toolButtons.map((b) => [b.id, b]), ...swatches.map((s) => [s.color, s])];
+    }
+    return [];
+  }
+
+  // A fingertip covers far more of the screen than a cursor's tip: with slop
+  // (in canvas pixels), a press that lands just off a target still picks the
+  // nearest one. The paper itself only counts on a direct hit.
+  function hitTest(p, slop = 0) {
+    const exact = hitExact(p);
+    if (exact || slop <= 0) return exact;
+    let best = null;
+    let bestDistance = slop;
+    targets().forEach(([id, rect]) => {
+      const d = rectDistance(p, rect);
+      if (d < bestDistance) {
+        bestDistance = d;
+        best = id;
+      }
+    });
+    return best;
+  }
+
+  function hitExact(p) {
     if (state === 'desktop') {
       const icon = icons.find((i) => inRect(p, iconHit(i)));
       return icon ? icon.id : null;
     }
     if (state === 'encyclopedia') {
-      if (inRect(p, closeBox)) return 'close';
+      if (inRect(p, closeHit)) return 'close';
       const row = encRows.find((r) => inRect(p, r));
       return row ? row.id : null;
     }
     if (state === 'paint') {
-      if (inRect(p, closeBox)) return 'close';
+      if (inRect(p, closeHit)) return 'close';
       const tool = toolButtons.find((b) => inRect(p, b));
       if (tool) return tool.id;
       const swatch = swatches.find((s) => inRect(p, s));
@@ -738,19 +796,22 @@ export function createDesktopScreen({ getStrings }) {
   }
 
   // Returns true when the screen consumed the event.
-  function handlePointer(type, p) {
+  // touch: a finger, not a cursor. Targets get slop, and no pixel cursor or
+  // hover highlight lingers after the finger lifts.
+  function handlePointer(type, p, { touch = false, slop = 0 } = {}) {
     if (!p) {
       pointer.inside = false;
       hover = null;
       paint.drawing = false;
       paint.last = null;
+      savePressed = false;
       lastKey = '';
       return false;
     }
     pointer.x = p.x;
     pointer.y = p.y;
-    pointer.inside = true;
-    hover = hitTest(p);
+    pointer.inside = !touch;
+    hover = (type === 'down' || type === 'up') && touch ? hitTest(p, slop) : hitTest(p);
     lastKey = '';
 
     if (type === 'down') {
@@ -777,6 +838,7 @@ export function createDesktopScreen({ getStrings }) {
         else if (hover === 'brush' || hover === 'eraser') paint.tool = hover;
         else if (hover?.startsWith?.('size-')) paint.size = SIZES[Number(hover.slice(5))];
         else if (hover === 'clear') resetSheet();
+        else if (hover === 'save') savePressed = true;
         else if (hover?.startsWith?.('#')) {
           paint.color = hover;
           paint.tool = 'brush';
@@ -794,8 +856,14 @@ export function createDesktopScreen({ getStrings }) {
       return true;
     }
     if (type === 'up') {
+      if (savePressed && hover === 'save' && state === 'paint') {
+        savedAt = now();
+        handlers.save(sheet);
+      }
+      savePressed = false;
       paint.drawing = false;
       paint.last = null;
+      if (touch) hover = null;
     }
     return state === 'desktop' || state === 'paint' || state === 'encyclopedia';
   }
@@ -838,7 +906,7 @@ export function createDesktopScreen({ getStrings }) {
     const d = new Date();
     const key = animating
       ? `a${t}`
-      : `${state}-${strings.lang}-${d.getHours()}:${d.getMinutes()}-${pointer.inside}-${encIndex}`;
+      : `${state}-${strings.lang}-${d.getHours()}:${d.getMinutes()}-${pointer.inside}-${encIndex}-${now() - savedAt < SAVED_FLASH_S}`;
     let rect = null;
     if (key !== lastKey || state === 'opening') {
       lastKey = key;
@@ -898,6 +966,13 @@ export function createDesktopScreen({ getStrings }) {
     },
     openPortfolio,
     openPaint,
+    // Back to the desktop from Paint or the Encyclopedia.
+    closeApp() {
+      if (state !== 'paint' && state !== 'encyclopedia') return false;
+      paint.drawing = false;
+      setState('desktop');
+      return true;
+    },
     openEncyclopedia(entry = 0) {
       encIndex = Math.max(0, Math.min(ENCYCLOPEDIA_ORDER.length - 1, Number(entry) || 0));
       setState('encyclopedia');

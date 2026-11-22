@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { capturePointer } from '../../utils/pointer.js';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
@@ -15,6 +16,8 @@ import { PROJECTS } from '../../data/portfolio.js';
 import cursorImage from '../../assets/cursors1.png';
 import { getLevel, getRadioState, radioCommand } from '../radio/radioPlayer.js';
 import { fadeOutSfx, playSfx, preloadSfx } from '../audio/sfx.js';
+import { isCompact, isSheet } from '../../utils/layout.js';
+import { paintingFilename, savePainting } from '../../utils/savePainting.js';
 
 const SITE_FOV = 55;
 const ROOM_FOV = 50;
@@ -64,9 +67,15 @@ function setupFakeCursor() {
   fakeCursor.style.backgroundImage = `url('${cursorImage}')`;
   document.body.appendChild(fakeCursor);
   document.body.classList.add('custom-cursor-enabled');
-  document.addEventListener('pointermove', (e) => {
-    fakeCursor.style.transform = `translate3d(${e.clientX}px, ${e.clientY}px, 0)`;
-  }, { passive: true });
+  const follow = (e) => {
+    // Touchscreen laptops and iPads with a trackpad: the drawn cursor is for
+    // the mouse only, and steps aside while a finger or pen is in use.
+    const mouse = e.pointerType === 'mouse';
+    document.body.classList.toggle('is-touch-input', !mouse);
+    if (mouse) fakeCursor.style.transform = `translate3d(${e.clientX}px, ${e.clientY}px, 0)`;
+  };
+  document.addEventListener('pointermove', follow, { passive: true });
+  document.addEventListener('pointerdown', follow, { passive: true });
 }
 
 export async function mountStage() {
@@ -76,9 +85,14 @@ export async function mountStage() {
 
   const W = () => window.innerWidth;
   const H = () => window.innerHeight;
+  // Phones and tablets have 2-3x screens but laptop-class GPUs at best: two
+  // bloom passes at full density would drop frames, so touch screens render a
+  // little softer.
+  const coarse = window.matchMedia('(pointer: coarse)').matches;
+  const pixelRatio = () => Math.min(window.devicePixelRatio || 1, coarse ? 1.5 : 1.75);
 
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75));
+  renderer.setPixelRatio(pixelRatio());
   renderer.setSize(W(), H());
   renderer.outputColorSpace = THREE.SRGBColorSpace;
 
@@ -111,6 +125,7 @@ export async function mountStage() {
   desktop.on('portfolioReady', () => startDive());
   desktop.on('stateChange', () => announceDesk());
   desktop.on('click', () => playSfx('click'));
+  desktop.on('save', (sheet) => savePainting(sheet, paintingFilename(getStrings().paint)));
   preloadSfx();
 
   // ---------- composers ----------
@@ -496,10 +511,38 @@ export async function mountStage() {
   const ndcFor = (clientX, clientY) => new THREE.Vector2((clientX / W()) * 2 - 1, -(clientY / H()) * 2 + 1);
 
   // Which radio button (if any) is under the pointer.
-  function hitRadio(clientX, clientY) {
+  // Which radio key is under the pointer. With a reach (CSS px), a finger that
+  // lands near a key still presses the closest one: on a phone each key is
+  // only a few pixels wide.
+  const RADIO_REACH = 32;
+  const keyCenter = new THREE.Vector3();
+  const keyEdge = new THREE.Vector3();
+  const keyScale = new THREE.Vector3();
+  function hitRadio(clientX, clientY, reach = 0) {
     raycaster.setFromCamera(ndcFor(clientX, clientY), roomCam);
     const hit = raycaster.intersectObjects(room.radioButtons, false)[0];
-    return hit?.object.userData.radioAction || null;
+    if (hit || reach <= 0) return hit?.object.userData.radioAction || null;
+    const right = new THREE.Vector3(1, 0, 0).applyQuaternion(roomCam.quaternion);
+    let best = null;
+    let bestDistance = reach;
+    room.radioButtons.forEach((key) => {
+      if (!key.geometry.boundingSphere) key.geometry.computeBoundingSphere();
+      key.getWorldPosition(keyCenter);
+      key.getWorldScale(keyScale);
+      const radius = key.geometry.boundingSphere.radius * Math.max(keyScale.x, keyScale.y, keyScale.z);
+      keyEdge.copy(keyCenter).addScaledVector(right, radius).project(roomCam);
+      keyCenter.project(roomCam);
+      if (keyCenter.z > 1) return;
+      const x = (keyCenter.x * 0.5 + 0.5) * W();
+      const y = (-keyCenter.y * 0.5 + 0.5) * H();
+      const radiusPx = Math.abs(keyEdge.x - keyCenter.x) * 0.5 * W();
+      const d = Math.max(0, Math.hypot(x - clientX, y - clientY) - radiusPx);
+      if (d < bestDistance) {
+        bestDistance = d;
+        best = key.userData.radioAction;
+      }
+    });
+    return best;
   }
 
   function pressRadio(action) {
@@ -532,21 +575,39 @@ export async function mountStage() {
   const lastClient = { x: -1, y: -1 };
   // When the camera arrives at the screen, hand the cursor over at once.
   function syncScreenPointer() {
-    if (!usingComputer() || lastClient.x < 0) return;
+    // Touch: nothing hovers, so there is no cursor to hand over.
+    if (!usingComputer() || lastClient.x < 0 || lastDownType !== 'mouse') return;
     const p = screenPoint(lastClient.x, lastClient.y);
     desktop.pointer('move', p);
     document.body.classList.toggle('is-on-screen', Boolean(p));
   }
 
+  // A finger is not a cursor: no pixel cursor, and targets get slop sized to a
+  // fingertip (~22 CSS px) in the computer's own pixels.
+  const isTouch = (e) => e.pointerType === 'touch' || e.pointerType === 'pen';
+  function screenSlop() {
+    const frame = room.getScreenFrame();
+    const right = new THREE.Vector3(1, 0, 0).applyQuaternion(roomCam.quaternion);
+    const a = frame.center.clone().addScaledVector(right, -frame.halfW).project(roomCam);
+    const b = frame.center.clone().addScaledVector(right, frame.halfW).project(roomCam);
+    const widthPx = Math.abs(b.x - a.x) * 0.5 * W();
+    return 22 * (desktop.size.width / Math.max(1, widthPx));
+  }
+  const touchOpts = (e) => (isTouch(e) ? { touch: true, slop: screenSlop() } : undefined);
+
   canvas.addEventListener('pointermove', (e) => {
     lastClient.x = e.clientX;
     lastClient.y = e.clientY;
-    pointer.x = (e.clientX / W()) * 2 - 1;
-    pointer.y = (e.clientY / H()) * 2 - 1;
+    // The seat's gentle parallax follows a mouse; a finger only touches down
+    // where it taps, which would leave the view tilted towards that spot.
+    if (!isTouch(e)) {
+      pointer.x = (e.clientX / W()) * 2 - 1;
+      pointer.y = (e.clientY / H()) * 2 - 1;
+    }
     if (stage.current !== 'room') return;
     if (usingComputer()) {
       const p = screenPoint(e.clientX, e.clientY);
-      desktop.pointer('move', p);
+      desktop.pointer('move', p, touchOpts(e));
       document.body.classList.toggle('is-on-screen', Boolean(p));
       hovering = false;
       document.body.classList.remove('is-hovering');
@@ -560,12 +621,13 @@ export async function mountStage() {
   canvas.addEventListener('pointerdown', (e) => {
     if (!usingComputer()) return;
     const p = screenPoint(e.clientX, e.clientY);
-    const radioAction = p ? null : hitRadio(e.clientX, e.clientY);
+    const radioAction = p ? null : hitRadio(e.clientX, e.clientY, isTouch(e) ? RADIO_REACH : 0);
     if (p) {
-      canvas.setPointerCapture?.(e.pointerId);
-      desktop.pointer('down', p);
+      capturePointer(canvas, e.pointerId);
+      desktop.pointer('down', p, touchOpts(e));
     } else if (radioAction) {
-      pressRadio(radioAction);
+      // A touch's pointerdown may not start sound; its click (below) can.
+      if (!isTouch(e)) pressRadio(radioAction);
     } else if (!hitMonitor(e.clientX, e.clientY)) {
       // Clicking the room around the computer: sit back.
       lean('seat');
@@ -574,7 +636,9 @@ export async function mountStage() {
 
   const releasePointer = (e) => {
     if (!usingComputer()) return;
-    desktop.pointer('up', screenPoint(e.clientX, e.clientY));
+    const p = screenPoint(e.clientX, e.clientY);
+    desktop.pointer('up', p, touchOpts(e));
+    if (isTouch(e)) document.body.classList.remove('is-on-screen');
   };
   canvas.addEventListener('pointerup', releasePointer);
   canvas.addEventListener('pointercancel', releasePointer);
@@ -584,14 +648,27 @@ export async function mountStage() {
     document.body.classList.remove('is-on-screen');
   });
 
+  let lastDownType = 'mouse';
+  canvas.addEventListener('pointerdown', (e) => { lastDownType = e.pointerType; }, { capture: true, passive: true });
+
   canvas.addEventListener('click', (e) => {
+    // Up close, a tapped radio key is pressed here, inside a real gesture.
+    if (usingComputer() && lastDownType !== 'mouse') {
+      const action = screenPoint(e.clientX, e.clientY) ? null : hitRadio(e.clientX, e.clientY, RADIO_REACH);
+      if (action) pressRadio(action);
+      return;
+    }
     if (stage.current !== 'room' || deskMode !== 'seat' || transition?.kind === 'dive') return;
-    const radioAction = hitRadio(e.clientX, e.clientY);
+    // A direct hit on a key or the monitor wins; only then does a finger's
+    // near miss reach for the closest radio key.
+    let radioAction = hitRadio(e.clientX, e.clientY);
+    const onMonitor = !radioAction && hitMonitor(e.clientX, e.clientY);
+    if (!radioAction && !onMonitor && lastDownType !== 'mouse') radioAction = hitRadio(e.clientX, e.clientY, RADIO_REACH);
     if (radioAction) {
       pressRadio(radioAction);
       return;
     }
-    if (hitMonitor(e.clientX, e.clientY)) {
+    if (onMonitor) {
       hovering = false;
       document.body.classList.remove('is-hovering');
       engageComputer();
@@ -613,6 +690,11 @@ export async function mountStage() {
   });
 
   globalEventBus.on('radio-command', ({ action }) => room.pressRadioButton(action));
+  // The room overlay's big "Close Paint" button (touch screens).
+  globalEventBus.on('room-close-app', () => {
+    if (stage.current !== 'room') return;
+    if (desktop.closeApp()) playSfx('click');
+  });
   globalEventBus.on('stage-start', quickEnter);
   globalEventBus.on('stage-skip', enterDirect);
   globalEventBus.on('stage-power-off', powerOff);
@@ -621,8 +703,25 @@ export async function mountStage() {
     desktop.invalidate();
   });
 
+  // Measured on resize, not per frame, so the render loop never forces layout.
+  const panelEl = document.getElementById('panel');
+  const indexEl = document.querySelector('.index');
+  const columns = { panel: 0, index: 0 };
+  function measureColumns() {
+    columns.panel = panelEl?.offsetWidth || 0;
+    columns.index = (indexEl?.offsetWidth || 304) + (indexEl?.offsetLeft || 0);
+  }
+
   // ---------- resize ----------
+  let lastSize = '';
   function resize() {
+    // Resizing reallocates every render target: only when something changed.
+    const size = `${W()}x${H()}@${pixelRatio()}`;
+    if (size === lastSize) return;
+    lastSize = size;
+    renderer.setPixelRatio(pixelRatio());
+    roomComposer.setPixelRatio(pixelRatio());
+    siteComposer.setPixelRatio(pixelRatio());
     renderer.setSize(W(), H());
     roomComposer.setSize(W(), H());
     siteComposer.setSize(W(), H());
@@ -630,8 +729,20 @@ export async function mountStage() {
     bloom.resolution.set(W(), H());
     crtPass.uniforms.uLines.value = Math.round(H() / 3);
     frameRoomCamera();
+    measureColumns();
   }
-  window.addEventListener('resize', resize);
+  // iOS reports the new size a beat after an orientation change, and the
+  // visual viewport moves with the browser chrome: settle on the next frame,
+  // then once more after the rotation animation.
+  let resizeTimer = 0;
+  const scheduleResize = () => {
+    requestAnimationFrame(resize);
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(resize, 350);
+  };
+  window.addEventListener('resize', scheduleResize);
+  window.addEventListener('orientationchange', scheduleResize);
+  window.visualViewport?.addEventListener('resize', scheduleResize);
   resize();
 
   // ---------- frame loop ----------
@@ -686,13 +797,12 @@ export async function mountStage() {
   // On wide screens the index covers the left column: move the projection
   // centre into the free area so no body sits under it. Eased, never a jump.
   function updateViewShift(dt) {
-    const gutter = Math.min(32, Math.max(16, W() * 0.022));
-    const wide = W() > 820;
     const detail = document.body.classList.contains('is-detail-view');
-    // Overview: centre right of the index. Detail: centre right of the panel.
-    const panel = W() > 1100 ? Math.min(600, W() * 0.46) : Math.min(560, W() * 0.54);
+    // Overview: centre right of the index column (when it is a column).
+    // Detail: centre right of the side panel (when it is not a bottom sheet).
     let target = 0;
-    if (wide) target = detail ? panel / 2 : (304 + gutter) / 2;
+    if (detail && !isSheet()) target = columns.panel / 2;
+    else if (!detail && !isCompact()) target = columns.index / 2;
     viewShift += (target - viewShift) * (1 - Math.exp(-dt * 4));
     if (Math.abs(viewShift) < 0.5) solar.camera.clearViewOffset();
     else solar.camera.setViewOffset(W(), H(), -viewShift, 0, W(), H());
@@ -707,8 +817,22 @@ export async function mountStage() {
     siteComposer.render(dt);
   }
 
+  // A frame that throws must not freeze the picture for good: report each
+  // distinct error once and keep the loop running.
+  const seenErrors = new Set();
   function frame() {
     requestAnimationFrame(frame);
+    try {
+      step();
+    } catch (error) {
+      if (!seenErrors.has(error.message)) {
+        seenErrors.add(error.message);
+        console.error(error);
+      }
+    }
+  }
+
+  function step() {
     const dt = Math.min(clock.getDelta(), 0.05);
     const et = clock.elapsedTime;
     const now = performance.now();

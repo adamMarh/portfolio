@@ -32,7 +32,7 @@ The portfolio is itself a piece of work: an explorable, custom-built Three.js so
 - Bilingual, English and French, with full parity: every visitor-facing string must exist in both languages. French is the default (`lang="fr"`, stored preference in `localStorage` key `portfolio-language`).
 - The solar-system concept is fixed: profile as Sun, projects as planets, explorable 3D scene. Future work refines it, not replaces it.
 - All project and profile content must be reachable by keyboard and by screen reader, not only by pointer interaction with the 3D scene.
-- Mobile: a responsive panel exists, but a phone-first experience was not made a binding requirement.
+- Mobile and tablet: required. Phones and iPads (portrait and landscape) must get the same experience as desktop, in every major browser (Safari, Chrome, Firefox, Edge): tap and pinch equivalents for every click, drag and wheel interaction, safe-area aware layout. Layout breakpoints live in `src/utils/layout.js` and are mirrored in the CSS.
 - Contact: LinkedIn is the only contact channel today. No email address or downloadable résumé exists; do not invent either.
 
 ## Brand Commitments

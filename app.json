@@ -1,0 +1,8 @@
+{
+  "android": {
+    "package": "com.anonymous.portfoliosolaire"
+  },
+  "ios": {
+    "bundleIdentifier": "com.anonymous.portfoliosolaire"
+  }
+}

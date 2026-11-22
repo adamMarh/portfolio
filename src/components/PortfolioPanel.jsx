@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { capturePointer } from '../utils/pointer.js';
 import { useLanguage } from '../context/LanguageContext.jsx';
 import { getTranslation } from '../i18n/translations.js';
 import { globalEventBus } from '../utils/eventBus.js';
@@ -15,6 +16,8 @@ export default function PortfolioPanel() {
   const [switching, setSwitching] = useState(false);
   const titleRef = useRef(null);
   const scrollRef = useRef(null);
+  const panelRef = useRef(null);
+  const sheetDrag = useRef(null);
 
   useBusEvent('portfolio-detail-opened', useCallback(({ idx: next }) => {
     setIdx(next);
@@ -32,6 +35,38 @@ export default function PortfolioPanel() {
     titleRef.current?.focus({ preventScroll: true });
   }, [open, switching, idx]);
 
+  // Bottom sheet: drag the handle down to close, like a native sheet. It
+  // follows the finger 1:1, closes past a third of its height or on a quick
+  // flick, and otherwise settles back with the panel's own easing.
+  const onGrabDown = (e) => {
+    const panel = panelRef.current;
+    if (!panel || !open) return;
+    capturePointer(e.currentTarget, e.pointerId);
+    sheetDrag.current = { y: e.clientY, t: performance.now(), dy: 0, v: 0, height: panel.offsetHeight };
+    panel.classList.add('is-sheet-dragging');
+  };
+  const onGrabMove = (e) => {
+    const drag = sheetDrag.current;
+    if (!drag) return;
+    const raw = e.clientY - drag.y;
+    // Upward: resist, a sheet that is already open has nowhere to go.
+    const dy = raw < 0 ? -Math.sqrt(-raw) * 2 : raw;
+    const now = performance.now();
+    drag.v = (dy - drag.dy) / Math.max(1, now - drag.t);
+    drag.dy = dy;
+    drag.t = now;
+    panelRef.current.style.transform = `translateY(${dy}px)`;
+  };
+  const onGrabUp = () => {
+    const drag = sheetDrag.current;
+    const panel = panelRef.current;
+    sheetDrag.current = null;
+    if (!drag || !panel) return;
+    panel.classList.remove('is-sheet-dragging');
+    panel.style.transform = '';
+    if (drag.dy > drag.height / 3 || (drag.v > 0.5 && drag.dy > 20)) globalEventBus.emit('portfolio-exit-detail');
+  };
+
   const body = idx === null ? null : getBody(language, idx);
   const position = BODY_ORDER.indexOf(idx);
   const prevIdx = BODY_ORDER[(position - 1 + BODY_ORDER.length) % BODY_ORDER.length];
@@ -43,7 +78,15 @@ export default function PortfolioPanel() {
   const links = (body?.links || []).filter((link) => /^https?:\/\//.test(link?.url || ''));
 
   return (
-    <aside id="panel" className={open ? 'is-open' : ''} inert={!open} aria-labelledby="panel-title">
+    <aside id="panel" ref={panelRef} className={open ? 'is-open' : ''} inert={!open} aria-labelledby="panel-title">
+      <div
+        className="panel__grab"
+        aria-hidden="true"
+        onPointerDown={onGrabDown}
+        onPointerMove={onGrabMove}
+        onPointerUp={onGrabUp}
+        onPointerCancel={onGrabUp}
+      />
       <div className="panel__scroll" ref={scrollRef}>
         <button type="button" className="panel__back" onClick={() => globalEventBus.emit('portfolio-exit-detail')}>
           <ChevronLeftIcon />

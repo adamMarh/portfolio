@@ -165,6 +165,12 @@ function ensureAudio() {
 // AudioContext created without a user gesture would leave it suspended (and the
 // music silent), so the meter is only wired inside the visitor's first gesture.
 let meterWired = false;
+let meterContext = null;
+// iOS suspends audio when the tab is hidden or a call comes in; the music runs
+// through the meter, so wake it on the next gesture.
+['pointerup', 'touchend', 'keydown'].forEach((type) => window.addEventListener(type, () => {
+  if (meterContext && meterContext.state !== 'running') meterContext.resume().catch(() => {});
+}, { capture: true, passive: true }));
 function wireMeter() {
   if (meterWired) return;
   meterWired = true;
@@ -178,6 +184,7 @@ function wireMeter() {
     source.connect(analyser);
     analyser.connect(context.destination);
     context.resume().catch(() => {});
+    meterContext = context;
   } catch {
     analyser = null;
   }
@@ -267,21 +274,31 @@ if (TRACKS.length) loadTags(TRACKS[0]).then(announce);
 // play, and if refused starts on the first click, tap or key press anywhere.
 let autoplayArmed = false;
 export function startRadioOnLoad() {
+  // Dev: a hot update re-running this module would start a second tape deck
+  // over the first; reload the page instead.
+  if (import.meta.hot && !autoplayArmed && window.__portfolioRadioArmed) {
+    window.location.reload();
+    return;
+  }
   if (!TRACKS.length || autoplayArmed) return;
+  window.__portfolioRadioArmed = true;
   autoplayArmed = true;
   status = 'pending';
   announce();
-  const onGesture = () => {
-    window.removeEventListener('pointerdown', onGesture, true);
-    window.removeEventListener('keydown', onGesture, true);
+  // Only these events let a page start sound. A touch's pointerdown does not
+  // (its pointerup does), and an AudioContext made outside one stays
+  // suspended, which would leave the music silent on phones and tablets.
+  const GESTURES = ['pointerdown', 'pointerup', 'touchend', 'click', 'keydown'];
+  const onGesture = (e) => {
+    if (e.type === 'pointerdown' && e.pointerType !== 'mouse') return;
+    GESTURES.forEach((type) => window.removeEventListener(type, onGesture, true));
     wireMeter();
     if (status === 'pending' && !userPaused) {
       gestureAt = performance.now();
       play();
     }
   };
-  window.addEventListener('pointerdown', onGesture, true);
-  window.addEventListener('keydown', onGesture, true);
+  GESTURES.forEach((type) => window.addEventListener(type, onGesture, true));
   const player = ensureAudio();
   if (!player.src) load(index);
   player.play().then(() => {
