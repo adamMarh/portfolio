@@ -5,6 +5,9 @@ import { createSolarScene } from './sceneService.js';
 import { getTranslation, getProjectTranslation, getPlanetName } from '../../i18n/translations.js';
 import { globalEventBus } from '../../utils/eventBus.js';
 import cursorImage from '../../assets/cursors1.png';
+import { debugLog } from '../../utils/debugLog.js';
+
+let jumpClickedAt = 0;
 
 function fireAnim(camera, camAnim, modeState, toPos, toLook, dur, cb) {
   camAnim.from.copy(camera.position);
@@ -87,12 +90,37 @@ async function playJumpAnimation(url, label) {
   ];
 
   await Promise.all(animations.map((animation) => animation.finished));
-  window.location.replace(url);
+  debugLog('jump:navigating', { url, msSinceClick: Math.round(performance.now() - jumpClickedAt) });
+  // assign (not replace) keeps the portfolio in history so the Back button returns here.
+  window.location.assign(url);
 }
+
+// When the user comes back with the Back button, the browser may restore this page
+// from its back/forward cache exactly as it was left: overlay fully opaque and the
+// "is-jumping" lock still set. Clear that state so the portfolio is usable again.
+function resetJumpGate() {
+  document.body.classList.remove("is-jumping");
+  const gate = document.getElementById("jump-gate");
+  if (!gate) return;
+  gate.classList.remove("is-active");
+  gate.style.opacity = "0";
+  const portal = gate.querySelector(".jump-portal");
+  if (portal) {
+    portal.style.opacity = "0";
+    portal.style.transform = "";
+  }
+}
+
+window.addEventListener("pageshow", (event) => {
+  debugLog('page:pageshow', { persisted: event.persisted, jumping: document.body.classList.contains("is-jumping") });
+  if (event.persisted) resetJumpGate();
+});
 
 function launchJump(url, label) {
   if (document.body.classList.contains("is-jumping")) return;
+  jumpClickedAt = performance.now();
   if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    debugLog('jump:navigating', { url, msSinceClick: 0 });
     window.location.assign(url);
     return;
   }
@@ -198,6 +226,13 @@ function populatePanel(data, language, projectIdx = -1) {
 }
 
 export function mountPortfolioSolarSystem() {
+  const navEntry = performance.getEntriesByType('navigation')[0];
+  debugLog('page:mount', {
+    navigationType: navEntry?.type, // navigate | reload | back_forward
+    url: location.href,
+    referrer: document.referrer || '(none)',
+  });
+
   const canvas = document.getElementById('canvas');
   const tooltip = document.getElementById('tooltip');
   const panel = document.getElementById('panel');
