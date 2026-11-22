@@ -18,6 +18,7 @@ export const translations = {
       dragToOrbit: 'Drag to orbit · Use the drawer to choose an element',
       dragToRotate: 'Drag to rotate',
       language: 'Language',
+      zoom: 'Zoom',
     },
     panel: {
       category: 'Project',
@@ -126,6 +127,7 @@ export const translations = {
       dragToOrbit: 'Faites glisser pour orbiter · Utilisez le panneau pour choisir un élément',
       dragToRotate: 'Faites glisser pour faire pivoter',
       language: 'Langue',
+      zoom: 'Zoom',
     },
     panel: {
       category: 'Projet',

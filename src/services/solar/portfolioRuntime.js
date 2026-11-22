@@ -4,6 +4,7 @@ import { PROJECTS, SELF_SUMMARY } from '../../data/portfolio.js';
 import { createSolarScene } from './sceneService.js';
 import { getTranslation, getProjectTranslation, getPlanetName } from '../../i18n/translations.js';
 import { globalEventBus } from '../../utils/eventBus.js';
+import cursorImage from '../../assets/cursors1.png';
 
 function fireAnim(camera, camAnim, modeState, toPos, toLook, dur, cb) {
   camAnim.from.copy(camera.position);
@@ -213,7 +214,7 @@ export function mountPortfolioSolarSystem() {
   document.body.classList.add('custom-cursor-enabled');
 
   // use one cursor PNG for everything
-  fakeCursor.style.backgroundImage = "url('/src/assets/cursors1.png')";
+  fakeCursor.style.backgroundImage = `url('${cursorImage}')`;
 
   let currentLanguage = localStorage.getItem('portfolio-language') || 'fr';
 
@@ -231,6 +232,41 @@ export function mountPortfolioSolarSystem() {
     dur: 0,
     cb: null,
   };
+
+  // Zoom bounds, expressed as camera distance to the look target.
+  // The startup framing is the most zoomed-out state.
+  const ZOOM_MAX_DIST = new THREE.Vector3(-4, 24, 82).length();
+  const ZOOM_MIN_DIST = 12;
+  let lastEmittedZoom = 0;
+
+  // level 0 = max zoomed out, 1 = max zoomed in (log scale so each step feels even)
+  const distToZoomLevel = (d) =>
+    Math.min(1, Math.max(0, Math.log(ZOOM_MAX_DIST / d) / Math.log(ZOOM_MAX_DIST / ZOOM_MIN_DIST)));
+  const zoomLevelToDist = (level) => ZOOM_MAX_DIST * Math.pow(ZOOM_MIN_DIST / ZOOM_MAX_DIST, level);
+
+  function syncSphFromCamera() {
+    sph.r = camera.position.length();
+    sph.theta = Math.atan2(camera.position.x, camera.position.z);
+    sph.phi = Math.acos(camera.position.y / camera.position.length());
+  }
+
+  function emitZoomLevel() {
+    const level = distToZoomLevel(camera.position.distanceTo(camAnim.curLook));
+    if (Math.abs(level - lastEmittedZoom) < 0.001) return;
+    lastEmittedZoom = level;
+    globalEventBus.emit('zoom-changed', { level });
+  }
+
+  function setZoomLevel(level) {
+    if (modeState.mode !== 'solar') return;
+    const dir = camera.position.clone().sub(camAnim.curLook);
+    if (dir.lengthSq() === 0) dir.set(0, 0, 1);
+    dir.normalize().multiplyScalar(zoomLevelToDist(level));
+    camera.position.copy(camAnim.curLook).add(dir);
+    camera.lookAt(camAnim.curLook);
+    syncSphFromCamera();
+    lastEmittedZoom = level;
+  }
 
   let selectedIdx = -1;
   let selectedBody = null;
@@ -404,6 +440,7 @@ export function mountPortfolioSolarSystem() {
       if (hud) hud.style.opacity = '1';
       camera.lookAt(0, 0, 0);
       camAnim.curLook.set(0, 0, 0);
+      emitZoomLevel();
     });
   }
 
@@ -438,6 +475,7 @@ export function mountPortfolioSolarSystem() {
         sph.theta -= dx * 0.005;
         sph.phi = Math.max(0.22, Math.min(Math.PI * 0.72, sph.phi - dy * 0.005));
         applySph();
+        emitZoomLevel();
         prevMx = e.clientX;
         prevMy = e.clientY;
       } else {
@@ -558,8 +596,14 @@ export function mountPortfolioSolarSystem() {
       if (!raycaster.ray.intersectPlane(plane, point)) point.set(0, 0, 0);
     }
 
-    // scale factor: <1 zooms in (wheel up gives negative deltaY), >1 zooms out
-    const scale = Math.exp(e.deltaY * 0.0012);
+    // scale factor: <1 zooms in (wheel up gives negative deltaY), >1 zooms out.
+    // In solar view, clamped so the camera-to-target distance stays within the slider's range.
+    let scale = Math.exp(e.deltaY * 0.0012);
+    if (modeState.mode === 'solar') {
+      const curDist = camera.position.distanceTo(camAnim.curLook);
+      scale = Math.min(ZOOM_MAX_DIST / curDist, Math.max(ZOOM_MIN_DIST / curDist, scale));
+      if (Math.abs(scale - 1) < 1e-4) return;
+    }
 
     const curLook = camAnim.curLook.clone();
     const camOffset = camera.position.clone().sub(point).multiplyScalar(scale);
@@ -570,9 +614,8 @@ export function mountPortfolioSolarSystem() {
     camera.lookAt(camAnim.curLook);
 
     // update spherical coords to keep other code in sync
-    sph.r = camera.position.length();
-    sph.theta = Math.atan2(camera.position.x, camera.position.z);
-    sph.phi = Math.acos(camera.position.y / camera.position.length());
+    syncSphFromCamera();
+    if (modeState.mode === 'solar') emitZoomLevel();
   }, { passive: false });
   canvas.addEventListener('contextmenu', (e) => e.preventDefault());
   backButton.addEventListener('click', exitDetail);
@@ -588,6 +631,10 @@ export function mountPortfolioSolarSystem() {
 
   globalEventBus.on('portfolio-target-cleared', () => {
     clearSelectionTarget();
+  });
+
+  globalEventBus.on('zoom-set', ({ level }) => {
+    setZoomLevel(level);
   });
 
   updateUILanguage(currentLanguage);
